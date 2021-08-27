@@ -4,9 +4,10 @@
 
 # importing libraries
 from fastapi import APIRouter
-from pydantic import BaseModel
-from typing import Dict, List, Optional
 from datetime import datetime
+
+from ..models.compute import ComputeStatusModel
+from ..common.utils import getCurrentTimestamp
 
 # instantiate the fastapi router object
 router = APIRouter(
@@ -14,26 +15,19 @@ router = APIRouter(
   tags=['compute']
 )
 
-# compute info model
-class ComputeInfo(BaseModel):
-  requested: datetime
-  started: Optional[datetime]
-  ended: Optional[datetime]
-  inProgress: bool
-
 # GET:/compute
 # return information on the weight computation
 @router.get('/')
-async def get_compute_info(response_model=ComputeInfo):
+async def get_compute_info(response_model=ComputeStatusModel):
   return {
-    "requested" : datetime.now,
+    "requested" : getCurrentTimestamp(),
     "inProgress" : False 
   }
 
 @router.post('/')
-async def start_compute(response_model=ComputeInfo):
+async def start_compute(response_model=ComputeStatusModel):
   return {
-    "requested" : datetime.now,
-    "started" : datetime.now,
+    "requested" : getCurrentTimestamp(),
+    "started" : getCurrentTimestamp(),
     "inProgress" : True 
   }
