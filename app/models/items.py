@@ -8,9 +8,15 @@ class ItemModel(BaseModel):
   group: str = "default"
   fields: Dict = {}
 
+  class Config:
+    allow_population_by_field_name = True
+
+
 # create item model
 class ItemCreateModel(BaseModel):
   id: Optional[UUID] = Field(default_factory=uuid4,alias='_id')
   group: Optional[str] = "default"
   fields: Dict = {}
 
+  class Config:
+    allow_population_by_field_name = True

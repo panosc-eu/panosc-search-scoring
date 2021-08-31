@@ -1,42 +1,57 @@
 #
-# database class
+#
+#
 
-import motor.motor_asyncio as motor_asyncio
+from typing import Callable
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
+from fastapi import FastAPI
+from functools import partial
 
+from .config import Config
 
-class Database:
-
-  __client = None
-  __db = None
-
-  def __init__(self,config):
-    self.__client = motor.AsyncIOMotorClient(config.mongodb_url)
-    self.__db = self.__client[config.database]
-
-  @property
-  def client(self):
-    return self.__client
-
-  @property
-  def db(self):
-    return self.__db
+#app_db_client: AsyncIOMotorClient = None
+#app_db_database: AsyncIOMotorDatabase = None
 
 
-from motor.motor_asyncio import AsyncIOMotorClient
+#def db_connect_handler(config: Config) -> Callable:
+def db_connect_handler(app: FastAPI) -> Callable:
+  """
+    Create database connection.
+  """
+  async def db_connect(app: FastAPI) -> None:
+    #global app_db_client
+    #global app_db_database
+
+    config = app.state.config
+    #app_db_client = AsyncIOMotorClient(config.mongodb_url)
+    #app_db_database = app_db_client[config.database]
+    app.state.db_client = AsyncIOMotorClient(config.mongodb_url)
+    app.state.db_database = app.state.db_client[config.database]
+
+  return partial(db_connect, app=app)
+
+#def db_close_handler() -> Callable:
+def db_close_handler(app: FastAPI) -> Callable:
+  """
+    Close database connection.
+  """
+  async def db_close(app: FastAPI) -> None:
+    #global app_db_client
+    #global app_db_database
+
+    #app_db_client.close()
+    #app_db_database = None
+    #app_db_client = None
+    app.state.db_client.close()
+    app.state.db_database = None
+    app.state.db_client = None
+
+  return partial(db_close,app=app)
 
 
-db_client: AsyncIOMotorClient = None
+async def get_database() -> AsyncIOMotorDatabase:
+  global app_db_database
 
+  #return app_db_database
+  pass
 
-async def get_db_client() -> AsyncIOMotorClient:
-    """Return database client instance."""
-    return db_client
-
-
-async def connect_db():
-    """Create database connection."""
-    db_client = AsyncIOMotorClient(DB_URL)
-
-async def close_db():
-    """Close database connection."""
-    db_client.close()

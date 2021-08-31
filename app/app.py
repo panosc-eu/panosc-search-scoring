@@ -2,11 +2,10 @@
 from fastapi import FastAPI
 
 from .routers import items, compute, score, terms, weights
-from .common import config,database
+from .common import config, database
 
 # instantiate local classes
 appConfig = config.Config()
-appDatabase = database.Database(appConfig)
 
 # instantiate main application
 app = FastAPI(
@@ -14,8 +13,11 @@ app = FastAPI(
   description=appConfig.description,
   version=appConfig.version
 )
-app.app_config = appConfig
-app.app_db = appDatabase.db
+app.state.config = appConfig
+app.state.db_client = None
+app.state.db_database = None
+app.add_event_handler("startup",database.db_connect_handler(app))
+app.add_event_handler("shutdown",database.db_close_handler(app))
 
 # include individual subsystems endpoints
 app.include_router(items.router)
