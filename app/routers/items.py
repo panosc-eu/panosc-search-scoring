@@ -8,7 +8,7 @@ from fastapi.encoders import jsonable_encoder
 from typing import List
 from asgiref.sync import sync_to_async
 
-from ..models.items import ItemModel, ItemCreateModel
+from ..models.items import ItemModel, ItemUpdateModel
 
 # main tag for items
 itemsRoute = 'items'
@@ -105,27 +105,69 @@ async def new_items(req: Request, inputItems = Body(...)): #List[ItemCreateModel
     raise Exception("Invalid data")
 
   return {
-    'result' : 'success',
+    'success' : True,
     'items-created' : {
       'length' : len(itemsId),
       'ids' : itemsId
     }
   }
 
+# Route DELETE:/items/<id>
+@router.delete("/{item_id}")
+async def delete_item(req: Request, item_id: str):
+  # extract db and config from the app class
+  config = req.app.state.config
+  db = req.app.state.db_database
+
+  # delete results
+  res = await db[itemsRoute].delete_many({'_id':item_id})
+  # fix id issue
+  return {
+    'successful' : True if res.deleted_count == 1 else False,
+    'items-deleted' : res.deleted_count
+  }
+
+
 # Route PUT:/items/<id>
+# replace 
 @router.put("/{item_id}")
-async def update_whole_item(item_id:str, item: ItemModel):
-  return "Update whole item"
+async def update_whole_item(req: Request, item_id:str, item:ItemUpdateModel):
+  # extract db and config from the app class
+  config = req.app.state.config
+  db = req.app.state.db_database
+
+  # prepare item
+  prep_item = jsonable_encoder(item,exclude_unset=True)
+  # update item
+  res = await db[itemsRoute].replace_one(
+    {'_id': item_id},
+    prep_item
+  )
+
+  return {
+    'successful' : True if res.modified_count == 1 else False,
+    'items_updated' : res.modified_count
+  }
+
+
 
 # Route PATCH:/items/<id>
 @router.patch("/{item_id}")
-async def update_partial_item(item_id:str, item:ItemModel):
-  return "Update partial item"
-  # example code
-  # stored_item_data = get data from db
-  store_item_model = Item(**stored_item_data)
-  update_data = item.dict(exclude_unset=True)
-  updated_item = stored_item_model.copy(update=update_data)
-  # save item in db
+async def update_partial_item(req: Request, item_id:str, item:ItemUpdateModel):
+  # extract db and config from the app class
+  config = req.app.state.config
+  db = req.app.state.db_database
 
+  # prepare item
+  prep_item = jsonable_encoder(item,exclude_unset=True)
+  # update item
+  res = await db[itemsRoute].update_one(
+    {'_id': item_id},
+    {'$set' : prep_item}
+  )
 
+  return {
+    'successful' : True if res.modified_count == 1 else False,
+    'items_updated' : res.modified_count
+  }
+  
