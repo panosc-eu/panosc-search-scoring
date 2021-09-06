@@ -3,12 +3,24 @@
 #
 
 # importing libraries
-from fastapi import APIRouter, Request, Body
+from fastapi import APIRouter, Request, Response, status, Body
+from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from typing import List
-from asgiref.sync import sync_to_async
 
-from ..models.items import ItemModel, ItemUpdateModel
+#from starlette import responses
+#from asgiref.sync import sync_to_async
+
+from ..models.items import \
+  ItemModel, \
+  ItemPutModel, \
+  ItemPutModel, \
+  ItemPatchModel, \
+  ItemCreationResponseModel, \
+  ItemsCountResponseModel, \
+  ItemPutResponseModel, \
+  ItemPatchResponseModel, \
+  ItemDeleteResponseModel
 
 # main tag for items
 itemsRoute = 'items'
@@ -20,7 +32,12 @@ router = APIRouter(
 )
 
 # Route GET:/items
-@router.get("/")
+@router.get(
+  "/",
+  response_model=List[ItemModel],
+  status_code=200,
+  response_model_by_alias=False
+)
 async def get_items(req: Request, limit: int = 1000, offset: int = 0):
   # extract db and config from the app class
   config = req.app.state.config
@@ -52,11 +69,15 @@ async def get_items(req: Request, limit: int = 1000, offset: int = 0):
   #items = await db[itemsRoute].find().skip(offset).to_list(limit)
   items = await db[itemsRoute].aggregate(pipeline).to_list(length=None)
 
-  return items
+  return jsonable_encoder(items,by_alias=False)
 
 
 # Route GET:/items/count
-@router.get("/count")
+@router.get(
+  "/count", 
+  response_model=ItemsCountResponseModel,
+  status_code=200
+)
 async def count_items(req: Request):
   # extract db and config from the app class
   config = req.app.state.config
@@ -64,32 +85,60 @@ async def count_items(req: Request):
   
   # retrieve results
   count = await db[itemsRoute].count_documents({})
-  return count
+  return {
+    "count": count
+  }
 
 
 # Route GET:/items/<id>
-@router.get("/{item_id}")
-async def get_item(req: Request, item_id: str):
+@router.get(
+  "/{item_id}",
+  response_model=ItemModel,
+  status_code=200,
+  response_model_by_alias=False,
+  responses={
+    404: {
+      'Model': None
+    }
+  }
+)
+async def get_item(
+    req: Request, 
+    item_id: str
+):
   # extract db and config from the app class
   config = req.app.state.config
   db = req.app.state.db_database
   
   # retrieve results
   item = await db[itemsRoute].find_one({'_id':item_id})
+  if not item:
+    # item not found
+    return JSONResponse(
+      status_code=404,
+      content=None
+    )
+
   # fix id issue
   item['id'] = item['_id']
   del item['_id']
+  
   return item
 
 
 # Route POST:/items
-@router.post("/")
+@router.post(
+  "/", 
+  response_model=ItemCreationResponseModel,
+  status_code=201
+)
 async def new_items(req: Request, inputItems = Body(...)): #List[ItemCreateModel]):
   # extract db and config from the app class
   config = req.app.state.config
   db = req.app.state.db_database
   
-  # check if we need to insert one or many
+  print(inputItems)
+  # check if we need to insert one or manyß
   writtenItems = 0
   if type(inputItems) is dict:
     # we have only one item to insert
@@ -106,15 +155,21 @@ async def new_items(req: Request, inputItems = Body(...)): #List[ItemCreateModel
 
   return {
     'success' : True,
-    'items-created' : {
-      'length' : len(itemsId),
-      'ids' : itemsId
-    }
+    'items_created' : len(itemsId),
+    'items_ids' : itemsId
   }
 
+
 # Route DELETE:/items/<id>
-@router.delete("/{item_id}")
-async def delete_item(req: Request, item_id: str):
+@router.delete(
+  "/{item_id}",
+  response_model=ItemDeleteResponseModel,
+  status_code=200
+)
+async def delete_item(
+    req: Request, 
+    item_id: str
+):
   # extract db and config from the app class
   config = req.app.state.config
   db = req.app.state.db_database
@@ -124,14 +179,22 @@ async def delete_item(req: Request, item_id: str):
   # fix id issue
   return {
     'successful' : True if res.deleted_count == 1 else False,
-    'items-deleted' : res.deleted_count
+    'items_deleted' : res.deleted_count
   }
 
 
 # Route PUT:/items/<id>
 # replace 
-@router.put("/{item_id}")
-async def update_whole_item(req: Request, item_id:str, item:ItemUpdateModel):
+@router.put(
+  "/{item_id}",
+  response_model=ItemPutResponseModel,
+  status_code=200
+)
+async def update_whole_item(
+    req: Request, 
+    item_id:str, 
+    item:ItemPutModel
+):
   # extract db and config from the app class
   config = req.app.state.config
   db = req.app.state.db_database
@@ -152,8 +215,16 @@ async def update_whole_item(req: Request, item_id:str, item:ItemUpdateModel):
 
 
 # Route PATCH:/items/<id>
-@router.patch("/{item_id}")
-async def update_partial_item(req: Request, item_id:str, item:ItemUpdateModel):
+@router.patch(
+  "/{item_id}",
+  response_model=ItemPatchResponseModel,
+  status_code=200
+)
+async def update_partial_item(
+    req: Request, 
+    item_id:str, 
+    item:ItemPatchModel
+):
   # extract db and config from the app class
   config = req.app.state.config
   db = req.app.state.db_database

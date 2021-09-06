@@ -1,0 +1,8 @@
+{
+  "database" : "pss_test",
+  "mongodb_url" : "mongodb://127.0.0.1:27017",
+  "port" : 8000,
+  "application" : "PSS",
+  "description" : "PaNOSC search scoring. Test run",
+  "version" : "vTest"
+}

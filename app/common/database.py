@@ -27,6 +27,7 @@ def db_connect_handler(app: FastAPI) -> Callable:
     #app_db_database = app_db_client[config.database]
     app.state.db_client = AsyncIOMotorClient(config.mongodb_url)
     app.state.db_database = app.state.db_client[config.database]
+    print(app.state.db_database)
 
   return partial(db_connect, app=app)
 
