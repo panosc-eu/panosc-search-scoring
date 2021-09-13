@@ -82,7 +82,7 @@ def populateDatabase(numberOfItems=-1):
     items_to_be_created = items_to_be_created[0:numberOfItems]
 
   # retrieve the database collection
-  test_items_db_collection = test_items_db_database[itemsRouter.itemsRoute]
+  test_items_db_collection = test_items_db_database[itemsRouter.endpointRoute]
   
   # insert items in collection
   res = test_items_db_collection.insert_many(

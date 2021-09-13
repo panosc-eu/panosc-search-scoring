@@ -1,3 +1,5 @@
+import datetime
+
 # database connection
 test_database_uri = "mongodb://127.0.0.1:27017"
 test_database = "pss_test"
@@ -42,5 +44,48 @@ test_items = {
       "title" : "Information overload",
       "description" : "Information overload (also known as infobesity,[1][2] infoxication,[3] information anxiety,[4] and information explosion[5]) is the difficulty in understanding an issue and effectively making decisions when one has too much information (TMI) about that issue,[6] and is generally associated with the excessive quantity of daily information. The term \"Information overload\" was first used in Bertram Gross' 1964 book, The Managing of Organizations,[7] and was further popularized by Alvin Toffler in his bestselling 1970 book Future Shock.[8] Speier et al. (1999) said that if input exceeds the processing capacity, information overload occurs, which is likely to reduce the quality of the decisions.[9] In a newer definition, Roetzel (2019) focuses on time and resources aspects. He states that when a decision-maker is given many sets of information, such as complexity, amount, and contradiction, the quality of its decision is decreased because of the individual’s limitation of scarce resources to process all the information and optimally make the best decision.[10] The advent of modern information technology has been a primary driver of information overload on multiple fronts: in quantity produced, ease of dissemination, and breadth of the audience reached. Longstanding technological factors have been further intensified by the rise of social media and the attention economy, which facilitates attention theft.[11][12] In the age of connective digital technologies, informatics, the Internet culture (or the digital culture), information overload is associated with over-exposure, excessive viewing of information, and input abundance of information and data.",
     }    
+  }
+}
+
+test_status_requested = datetime.datetime(2021, 9, 10, 8, 0, 36, 424175).isoformat()
+test_status_started = datetime.datetime(2021, 9, 10, 10, 1, 27, 593804).isoformat()
+test_status_ended = datetime.datetime(2021, 9, 10, 13, 26, 17, 91609).isoformat()
+
+test_status = {
+  'not_run_yet' : {
+    "id" :  "4D983232-8F13-4AD0-9933-51348379497D",
+    "requested" : None,
+    "started" : None,
+    "ended" : None,
+    "progressPercent" : 0,
+    "progressDescription" : "",
+    "inProgress" : False
+  },
+  'requested' : {
+    "id" :  "C4B583B7-85C8-4C1E-83C3-1B23DBC3353C",
+    "requested" : test_status_requested,
+    "started" : None,
+    "ended" : None,
+    "progressPercent" : 0,
+    "progressDescription" : "Fake requested",
+    "inProgress" : True
+  },
+  'in_progress' : {
+    "id" :  "60766773-7C68-4C89-BFE0-B14EE4233A32",
+    "requested" : test_status_requested,
+    "started" : test_status_started,
+    "ended" : None,
+    "progressPercent" : 0.4,
+    "progressDescription" : "Fake weight computation",
+    "inProgress" : True
+  },
+  'done' : {
+    "id" :  "6D72FF4B-84BE-41DB-ABD4-736C711E0F93",
+    "requested" : test_status_requested,
+    "started" : test_status_started,
+    "ended" : test_status_ended,
+    "progressPercent" : 1,
+    "progressDescription" : "Fake weight computation",
+    "inProgress" : False
   }
 }

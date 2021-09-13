@@ -22,13 +22,13 @@ from ..models.items import \
   ItemPatchResponseModel, \
   ItemDeleteResponseModel
 
-# main tag for items
-itemsRoute = 'items'
+# main tag, route and database collection for items
+endpointRoute = 'items'
 
 # instantiate the fastapi router object
 router = APIRouter(
-  prefix='/' + itemsRoute,
-  tags=[itemsRoute]
+  prefix='/' + endpointRoute,
+  tags=[endpointRoute]
 )
 
 # Route GET:/items
@@ -66,8 +66,8 @@ async def get_items(req: Request, limit: int = 1000, offset: int = 0):
     }
   )
   # retrieve results
-  #items = await db[itemsRoute].find().skip(offset).to_list(limit)
-  items = await db[itemsRoute].aggregate(pipeline).to_list(length=None)
+  #items = await db[endpointRoute].find().skip(offset).to_list(limit)
+  items = await db[endpointRoute].aggregate(pipeline).to_list(length=None)
 
   return jsonable_encoder(items,by_alias=False)
 
@@ -84,7 +84,7 @@ async def count_items(req: Request):
   db = req.app.state.db_database
   
   # retrieve results
-  count = await db[itemsRoute].count_documents({})
+  count = await db[endpointRoute].count_documents({})
   return {
     "count": count
   }
@@ -111,7 +111,7 @@ async def get_item(
   db = req.app.state.db_database
   
   # retrieve results
-  item = await db[itemsRoute].find_one({'_id':item_id})
+  item = await db[endpointRoute].find_one({'_id':item_id})
   if not item:
     # item not found
     return JSONResponse(
@@ -143,12 +143,12 @@ async def new_items(req: Request, inputItems = Body(...)): #List[ItemCreateModel
   if type(inputItems) is dict:
     # we have only one item to insert
     modeledItem = jsonable_encoder(ItemModel(**inputItems), by_alias=True)
-    results = await db[itemsRoute].insert_one(modeledItem)
+    results = await db[endpointRoute].insert_one(modeledItem)
     itemsId = [results.inserted_id] if (type(results.inserted_id) is str and results.inserted_id) else []
   elif type(inputItems) is list:
     # we assume that we have many items to insert
     modeledItems = jsonable_encoder([ItemModel(**item) for item in inputItems], by_alias=True)
-    results = await db[itemsRoute].insert_many(modeledItems)
+    results = await db[endpointRoute].insert_many(modeledItems)
     itemsId = results.inserted_ids
   else:
     raise Exception("Invalid data")
@@ -175,7 +175,7 @@ async def delete_item(
   db = req.app.state.db_database
 
   # delete results
-  res = await db[itemsRoute].delete_many({'_id':item_id})
+  res = await db[endpointRoute].delete_many({'_id':item_id})
   # fix id issue
   return {
     'successful' : True if res.deleted_count == 1 else False,
@@ -202,7 +202,7 @@ async def update_whole_item(
   # prepare item
   prep_item = jsonable_encoder(item,exclude_unset=True)
   # update item
-  res = await db[itemsRoute].replace_one(
+  res = await db[endpointRoute].replace_one(
     {'_id': item_id},
     prep_item
   )
@@ -232,7 +232,7 @@ async def update_partial_item(
   # prepare item
   prep_item = jsonable_encoder(item,exclude_unset=True)
   # update item
-  res = await db[itemsRoute].update_one(
+  res = await db[endpointRoute].update_one(
     {'_id': item_id},
     {'$set' : prep_item}
   )

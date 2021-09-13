@@ -4,5 +4,6 @@
   "port" : 8000,
   "application" : "PSS",
   "description" : "PaNOSC search scoring. Test run",
-  "version" : "vTest"
+  "version" : "vTest",
+  "waitToStartCompute" : 5
 }
