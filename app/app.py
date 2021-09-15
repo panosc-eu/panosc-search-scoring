@@ -24,7 +24,7 @@ app.add_event_handler("shutdown",database.db_close_handler(app))
 app.include_router(items.router)
 app.include_router(compute.router)
 #app.include_router(score.router)
-#app.include_router(terms.router)
+app.include_router(terms.router)
 app.include_router(weights.router)
 
 # implement root endpoint

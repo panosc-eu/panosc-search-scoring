@@ -15,6 +15,7 @@ class pss_test_base:
   # database connection information
   _db_database_uri = ""
   _db_database_name = ""
+  _db_collection_name = ""
   # database object
   _db_client = None
   _db_database = None
@@ -38,10 +39,17 @@ class pss_test_base:
     print(cls._db_database_name)
     cls._db_database = cls._db_client[cls._db_database_name]
     print(cls._db_database)
-    print(cls._endpoint_name)
-    cls._db_collection = cls._db_database[cls._endpoint_name]
+    if not cls._db_collection_name:
+      # database collection name has been left empty
+      # so that means that the collection name is th esame as the endpoint name
+      cls._db_collection_name = cls._endpoint_name
+
+    print(cls._db_collection_name)
+    cls._db_collection = cls._db_database[cls._db_collection_name]
     print(cls._db_collection)
+    print(cls._endpoint_name)
     cls._endpoint_url = "/" + cls._endpoint_name
+    print(cls._endpoint_url)
 
 
   #
