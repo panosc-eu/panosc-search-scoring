@@ -41,7 +41,7 @@ class pss_test_base:
     print(cls._endpoint_name)
     cls._db_collection = cls._db_database[cls._endpoint_name]
     print(cls._db_collection)
-    cls._endpoint_url = "/" + cls._endpoint_name + "/"
+    cls._endpoint_url = "/" + cls._endpoint_name
 
 
   #
@@ -63,16 +63,14 @@ class pss_test_base:
 
 
   # lowercase uuid
-  @staticmethod
-  def _lowercaseItemId(item):
+  def _lowercaseItemId(self,item):
     print("PSS test class : lowercase item id")
     if 'id' in item.keys():
       item['id'] = item['id'].lower()
     return item
 
   # prepare item to be inserted in database
-  @staticmethod
-  def _prepItemForInsertion(inItem):
+  def _prepItemForInsertion(self,inItem):
     print("PSS test class : prep item for insertion")
     outItem = deepcopy(inItem)
     outItem['_id'] = outItem['id'].lower()
@@ -116,14 +114,14 @@ class pss_test_base:
 
     # takes care of normalizing uuid if they are uppercase
     outData = [
-      pss_test_base._lowercaseItemId(item)
+      self._lowercaseItemId(item)
       for item 
       in outData
     ]
 
     # insert items in collection
     res = self._db_collection.insert_many([
-      pss_test_base._prepItemForInsertion(item)
+      self._prepItemForInsertion(item)
       for item 
       in outData
     ])

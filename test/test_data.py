@@ -8,7 +8,7 @@ test_database = "pss_test"
 test_items = {
   "item_1" : {
     "id" : "24CC73BD-3A88-4AD7-B9B4-5C01AEC2456E",
-    "group" : "group 1",
+    "group" : "group_1",
     "fields" : {
       "title" : "term frequency inverse document frequency",
       "description" : "In information retrieval, tf–idf, TF*IDF, or TFIDF, short for term frequency–inverse document frequency, is a numerical statistic that is intended to reflect how important a word is to a document in a collection or corpus.[1] It is often used as a weighting factor in searches of information retrieval, text mining, and user modeling. The tf–idf value increases proportionally to the number of times a word appears in the document and is offset by the number of documents in the corpus that contain the word, which helps to adjust for the fact that some words appear more frequently in general. tf–idf is one of the most popular term-weighting schemes today. A survey conducted in 2015 showed that 83% of text-based recommender systems in digital libraries use tf–idf. Variations of the tf–idf weighting scheme are often used by search engines as a central tool in scoring and ranking a document's relevance given a user query. tf–idf can be successfully used for stop-words filtering in various subject fields, including text summarization and classification. One of the simplest ranking functions is computed by summing the tf–idf for each query term; many more sophisticated ranking functions are variants of this simple model",
@@ -16,7 +16,7 @@ test_items = {
   },
   "item_2" : {
     "id" : "37BBB678-4E40-43AC-998D-454E667AEDBF",
-    "group" : "group 1",
+    "group" : "group_1",
     "fields" : {
       "title" : "Information retrieval",
       "description" : "Information retrieval (IR) is the process of obtaining information system resources that are relevant to an information need from a collection of those resources. Searches can be based on full-text or other content-based indexing. Information retrieval is the science of searching for information in a document, searching for documents themselves, and also searching for the metadata that describes data, and for databases of texts, images or sounds. Automated information retrieval systems are used to reduce what has been called information overload. An IR system is a software system that provides access to books, journals and other documents; stores and manages those documents. Web search engines are the most visible IR applications.",
@@ -24,7 +24,7 @@ test_items = {
   },
   "item_3" : {
     "id" : "F2FC84A3-9A0A-48A9-87EF-07C752C8E5B4",
-    "group" : "group 1",
+    "group" : "group_1",
     "fields" : {
       "title" : "Information system",
       "description" : "An information system (IS) is a formal, sociotechnical, organizational system designed to collect, process, store, and distribute information.[1] From a sociotechnical perspective, information systems are composed by four components: task, people, structure (or roles), and technology.[2] Information systems can be defined as an integration of components for collection, storage and processing of data of which the data is used to provide information, contribute to knowledge as well as digital products that facilitate decision making.[3] A computer information system is a system composed of people and computers that processes or interprets information.[4][5][6][7] The term is also sometimes used to simply refer to a computer system with software installed. Information Systems is an academic study of systems with a specific reference to information and the complementary networks of hardware and software that people and organizations use to collect, filter, process, create and also distribute data. An emphasis is placed on an information system having a definitive boundary, users, processors, storage, inputs, outputs and the aforementioned communication networks.[8]",
@@ -39,7 +39,7 @@ test_items = {
   },
   "item_5" : {
     "id" : "A08C952D-4888-424F-B115-B5BCAC821B67",
-    "group" : "group 1",
+    "group" : "group_1",
     "fields" : {
       "title" : "Information overload",
       "description" : "Information overload (also known as infobesity,[1][2] infoxication,[3] information anxiety,[4] and information explosion[5]) is the difficulty in understanding an issue and effectively making decisions when one has too much information (TMI) about that issue,[6] and is generally associated with the excessive quantity of daily information. The term \"Information overload\" was first used in Bertram Gross' 1964 book, The Managing of Organizations,[7] and was further popularized by Alvin Toffler in his bestselling 1970 book Future Shock.[8] Speier et al. (1999) said that if input exceeds the processing capacity, information overload occurs, which is likely to reduce the quality of the decisions.[9] In a newer definition, Roetzel (2019) focuses on time and resources aspects. He states that when a decision-maker is given many sets of information, such as complexity, amount, and contradiction, the quality of its decision is decreased because of the individual’s limitation of scarce resources to process all the information and optimally make the best decision.[10] The advent of modern information technology has been a primary driver of information overload on multiple fronts: in quantity produced, ease of dissemination, and breadth of the audience reached. Longstanding technological factors have been further intensified by the rise of social media and the attention economy, which facilitates attention theft.[11][12] In the age of connective digital technologies, informatics, the Internet culture (or the digital culture), information overload is associated with over-exposure, excessive viewing of information, and input abundance of information and data.",
@@ -88,4 +88,74 @@ test_status = {
     "progressDescription" : "Fake weight computation",
     "inProgress" : False
   }
+}
+
+test_weights_timestamp_1 = datetime.datetime(2021, 9, 10, 8, 0, 36, 424175).isoformat()
+test_weights_timestamp_2 = datetime.datetime(2021, 9, 10, 10, 1, 27, 593804).isoformat()
+test_weights_timestamp_3 = datetime.datetime(2021, 9, 10, 13, 26, 17, 91609).isoformat()
+
+test_weights = {
+  'weight_1_1' : {
+    'id' : "3E144A19-496D-43CA-9FDD-4F2F56E7BF57",
+    'term' : 'information',
+    'itemId' : '24CC73BD-3A88-4AD7-B9B4-5C01AEC2456E',
+    'timestamp' : test_weights_timestamp_1,
+    'value' : 0.11
+  },
+  'weight_1_2' : {
+    'id' : "1BFDBDAC-ECA6-44BB-AC0D-73D512978D9E",
+    'term' : 'information',
+    'itemId' : '37BBB678-4E40-43AC-998D-454E667AEDBF',
+    'timestamp' : test_weights_timestamp_1,
+    'value' : 0.12
+  },
+  'weight_1_3' : {
+    'id' : "2234CD79-8CD9-4809-9354-81A70DCD7466",
+    'term' : 'information',
+    'itemId' : 'F2FC84A3-9A0A-48A9-87EF-07C752C8E5B4',
+    'timestamp' : test_weights_timestamp_1,
+    'value' : 0.13
+  },
+  'weight_1_4' : {
+    'id' : "2260E18F-8CA8-4414-94A3-986A42B7E38C",
+    'term' : 'information',
+    'itemId' : '4D983232-8F13-4AD0-9933-51348379497D',
+    'timestamp' : test_weights_timestamp_1,
+    'value' : 0.14
+  },
+  'weight_1_5' : {
+    'id' : "BB6DB517-9392-4500-BDC5-3B3C0314F607",
+    'term' : 'information',
+    'itemId' : 'A08C952D-4888-424F-B115-B5BCAC821B67',
+    'timestamp' : test_weights_timestamp_1,
+    'value' : 0.15
+  },
+  'weight_2_1' : {
+    'id' : "4C75587E-B620-4930-88E6-E0F75E591E40",
+    'term' : 'metadata',
+    'itemId' : '37BBB678-4E40-43AC-998D-454E667AEDBF',
+    'timestamp' : test_weights_timestamp_2,
+    'value' : 0.21
+  },
+  'weight_2_2' : {
+    'id' : "F2F4E7E0-A080-49C4-B481-F0F536BB8D59",
+    'term' : 'metadata',
+    'itemId' : '4D983232-8F13-4AD0-9933-51348379497D',
+    'timestamp' : test_weights_timestamp_2,
+    'value' : 0.22
+  },
+  'weight_3_1' : {
+    'id' : "4F9319CB-C5D9-49B5-8707-57DFC445AF35",
+    'term' : 'retrieval',
+    'itemId' : '24CC73BD-3A88-4AD7-B9B4-5C01AEC2456E',
+    'timestamp' : test_weights_timestamp_3,
+    'value' : 0.31
+  },
+  'weight_3_2' : {
+    'id' : "F7019D62-CEC7-4CEC-8778-5D3DABD50649",
+    'term' : 'retrieval',
+    'itemId' : '37BBB678-4E40-43AC-998D-454E667AEDBF',
+    'timestamp' : test_weights_timestamp_3,
+    'value' : 0.32
+  },
 }

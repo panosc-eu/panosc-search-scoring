@@ -25,7 +25,7 @@ app.include_router(items.router)
 app.include_router(compute.router)
 #app.include_router(score.router)
 #app.include_router(terms.router)
-#app.include_router(weights.router)
+app.include_router(weights.router)
 
 # implement root endpoint
 # the purpose is to check if the server is operational

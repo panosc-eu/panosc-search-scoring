@@ -55,7 +55,7 @@ class WC():
     # update status in database
     self._updateStatus(0.80,"Saving weights")
 
-    sleep(5)
+    sleep(1)
 
 
   @classmethod

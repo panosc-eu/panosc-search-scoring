@@ -27,7 +27,7 @@ router = APIRouter(
 # GET:/compute
 # return information on the weight computation
 @router.get(
-  '/',
+  '',
   status_code=200,
   response_model=ComputeStatusResponseModel,
   responses={
@@ -113,7 +113,7 @@ async def run_background_weight_computation(config, db, coll):
 
 #
 @router.post(
-  '/',
+  '',
   status_code=200,
   response_model=ComputeStatusResponseModel,
   responses={
