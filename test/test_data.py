@@ -159,3 +159,76 @@ test_weights = {
     'value' : 0.32
   },
 }
+
+
+test_scores = {
+  'data_1' : {
+    'query' : 'test the scoring',
+    'terms' : ['test', 'scor'],
+    'itemIds' : [ 
+      '7660171a-3421-461d-b2c7-1d9c575dcf1f',
+      '3136f700-572e-4b5c-98ac-1b7bf21be75a',
+      'f7bf042e-e249-48b5-8f03-27de390f20f8',
+      '4e602cd8-eacd-447f-a087-1000021f55b0',
+      '53fcf368-9b59-48f4-8a56-3166d4d89414',
+      '03c97039-d2bc-4e02-b70e-0ae9e17b1821',
+      '6f51db9c-56e1-4714-a2d2-ed1b5426ee95',
+      '2178af78-1ece-4f40-9c3c-4e5e3eabe2a0',
+      'ca6634ab-0dec-41d8-8a09-8a3f4db8b40b',
+      '07a6cda2-d50a-4775-bcc1-b9517473c1c2'
+    ],
+    'scores' : [
+      {
+        'id' : '7660171a-3421-461d-b2c7-1d9c575dcf1f',
+        'score' : 0.10,
+        'group' : 'group_1'
+      },
+      {
+        'id' : '3136f700-572e-4b5c-98ac-1b7bf21be75a',
+        'score' : 0.12,
+        'group' : 'group_2'
+      },
+      {
+        'id' : 'f7bf042e-e249-48b5-8f03-27de390f20f8',
+        'score' : 0.14,
+        'group' : 'group_1'
+      },
+      {
+        'id' : '4e602cd8-eacd-447f-a087-1000021f55b0',
+        'score' : 0.16,
+        'group' : 'group_2'
+      },
+      {
+        'id' : '53fcf368-9b59-48f4-8a56-3166d4d89414',
+        'score' : 0.18,
+        'group' : 'group_1'
+      },
+      {
+        'id' : '03c97039-d2bc-4e02-b70e-0ae9e17b1821',
+        'score' : 0.20,
+        'group' : 'group_2'
+      },
+      {
+        'id' : '6f51db9c-56e1-4714-a2d2-ed1b5426ee95',
+        'score' : 0.22,
+        'group' : 'group_1'
+      },
+      {
+        'id' : '2178af78-1ece-4f40-9c3c-4e5e3eabe2a0',
+        'score' : 0.24,
+        'group' : 'group_2'
+      },
+      {
+        'id' : 'ca6634ab-0dec-41d8-8a09-8a3f4db8b40b',
+        'score' : 0.26,
+        'group' : 'group_1'
+      },
+      {
+        'id' : '07a6cda2-d50a-4775-bcc1-b9517473c1c2',
+        'score' : 0.28,
+        'group' : 'group_2'
+      }
+    ],
+    'computeInProgress' : False
+  }
+}
