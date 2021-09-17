@@ -48,7 +48,7 @@ async def get_compute_status(
 
   # retrieve status from database
   # there should be only one, so we retrieve only one
-  computeStatus = await db[endpointRoute].find({}).to_list(1000)
+  computeStatus = await db[endpointRoute].find({}).to_list(None)
 
   if not computeStatus or len(computeStatus) == 0:
     # item not found

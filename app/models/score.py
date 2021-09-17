@@ -1,13 +1,13 @@
 from pydantic import BaseModel
 from typing import Optional, List
+from uuid import UUID
 
 # score request model. Body of the post request
 class ScoreRequestModel(BaseModel):
   query: str
-  itemIds: Optional[List[str]] = []
-  groups: Optional[List[str]] = ["all"]
-  grouped: Optional[bool] = False
-  limit: Optional[int] = 50
+  itemIds: Optional[List[UUID]] = []
+  group: Optional[str] = ""
+  limit: Optional[int] = -1
 
 # scored item model
 class ScoredItemModel(BaseModel):
@@ -24,8 +24,14 @@ class ScoreQueryModel(BaseModel):
   query: str
   terms: List[str]
 
-class ScoresOutputModel(BaseModel):
+class ScoreResponseModel(BaseModel):
+  request: ScoreRequestModel
   query: ScoreQueryModel
   scores: List[ScoredItemModel]
-  grouped: Optional[List[GroupedItemsModel]]
-  length: int
+  #grouped: Optional[List[GroupedItemsModel]]
+  dimension: int
+  computeInProgress: bool
+
+class ScoresResultsModel(BaseModel):
+  query: ScoreQueryModel
+  scores: List[ScoredItemModel]
