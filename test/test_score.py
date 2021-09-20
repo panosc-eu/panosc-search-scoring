@@ -4,12 +4,13 @@
 
 from json.decoder import JSONDecodeError
 from fastapi.testclient import TestClient
+#from mock.mock import AsyncMock
 import pymongo
 import datetime
 import pytest
 from copy import deepcopy
 from collections import Counter
-from unittest.mock import Mock
+from mock import AsyncMock, Mock, patch
 
 from app import app
 import test.test_data as test_data
@@ -30,31 +31,37 @@ class TestTerms(pss_test_base):
   # define collection we want to work with
   _endpoint_name = scoreRouter.endpointRoute
   _data = [test_data.test_status['done']]
+  _score_data = test_data.test_scores['data_1']
   # group selected for testing with group
   _selectedGroup = 'group_1'
 
   #
   # TESTS
   # =================
-  def test_post_score(self):
+  #@pytest.mock.asyncio
+  @patch("app.routers.score.SC",new_callable=AsyncMock)
+  def test_post_score(self,mock_SC):
     print("test_score.test_post_score")
 
-    query = test_data.test_scores['query']
-    terms = test_data.test_scores['terms']
-    scores = test_data.test_scores['scores']
+    query = self._score_data['query']
+    terms = self._score_data['terms']
+    scores = self._score_data['scores']
 
     #
     with TestClient(app.app) as client:
       # mocks the call to the score compute class
       SC = Mock()
-      SC.runWorkflow.return_value = None
-      SC.getQuerryTerms.return_value = terms
+      #SC.runWorkflow.return_value = None
+      SC.getQueryTerms.return_value = terms
       SC.getScores.return_value = scores
       SC.getScoresLength.return_value = len(scores)
+      
+      #mock_sc = mock_SC.return_value
+      mock_SC.runWorkflow.return_value = SC
 
       request = {
         'query' : query,
-        'itemsId' : test_data.test_scores['itemsId']
+        'itemIds' : self._score_data['itemIds']
       }
 
       response = client.post(
@@ -64,10 +71,11 @@ class TestTerms(pss_test_base):
 
       assert response.status_code == 200
       jsonResponse = response.json()
-      assert jsonResponse['request'] == request
+      assert jsonResponse['request']['query'] == request['query']
+      assert jsonResponse['request']['itemIds'] == request['itemIds']
       assert jsonResponse['query']['query'] == query
       assert jsonResponse['query']['terms'] == terms
       assert jsonResponse['scores'] == scores
-      assert jsonResponse['dimensions'] == len(scores)
+      assert jsonResponse['dimension'] == len(scores)
       assert jsonResponse['computeInProgress'] == False
 

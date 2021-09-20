@@ -27,7 +27,7 @@ class SC:
 
 
   @staticmethod
-  def runWorkflow(
+  async def runWorkflow(
       request: ScoreRequestModel,
       db,
       coll

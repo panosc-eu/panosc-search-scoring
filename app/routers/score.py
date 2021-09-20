@@ -3,7 +3,8 @@
 #
 
 # importing libraries
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Body
+from fastapi.encoders import jsonable_encoder
 
 from ..models.score import ScoreRequestModel, ScoreResponseModel, ScoresResultsModel
 from .weights import endpointRoute as weightsCollection
@@ -30,26 +31,31 @@ router = APIRouter(
   status_code=200,
   response_model=ScoreResponseModel 
 )
-async def get_scores(req: Request, scoreRequest: ScoreRequestModel):
-  pass# extract db and config from the app class
+async def get_scores(req: Request, scoreRequest = Body(...)):
+#async def get_scores(req: Request, scoreRequest: ScoreRequestModel):
+  # extract db and config from the app class
   config = req.app.state.config
   db = req.app.state.db_database
 
+  print(ScoreRequestModel(**scoreRequest))
+
+  print(type(SC))
   # compute the scores
   oSC = await SC.runWorkflow(scoreRequest,db,db[weightsCollection])
+  print(oSC)
   
   # check weight computation status
   computeStatus = await db[computeCollection].find({}).to_list(None)
   computeInProgress = computeStatus[0]['inProgress'] if len(computeStatus) > 0 else False
 
   return {
-    'request': scoreRequest,
+    'request': jsonable_encoder(ScoreRequestModel(**scoreRequest)),
     'query' : {
       'query' : scoreRequest['query'],
       'terms' : oSC.getQueryTerms()
     },
     'scores' : oSC.getScores(),
-    'dimensions' : oSC.getScoresLength(),
+    'dimension' : oSC.getScoresLength(),
     'computeInProgress' : computeInProgress
   }
 
