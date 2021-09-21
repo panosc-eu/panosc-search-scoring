@@ -2,9 +2,12 @@ from time import sleep
 import pandas as pd
 import numpy as np
 import json
+from pymongo import UpdateOne
 
-import preprocessItemsText as pit
-import tf_iduf
+from app.models.weights import WeightModel
+import app.ml.preprocessItemsText as pit
+import app.ml.tf_iduf as tf_iduf
+from ..common.utils import getCurrentTimestamp
 
 
 class WC():
@@ -14,6 +17,7 @@ class WC():
   _db: None
   _items_coll: None
   _status_coll: None
+  _weights_coll: None
 
   # dataframe with items to compute weights on
   _items: None
@@ -21,11 +25,19 @@ class WC():
 
   
   #
-  def __init__(self,config, database, items_collection, status_collection):
+  def __init__(
+      self,
+      config, 
+      database, 
+      items_collection, 
+      status_collection,
+      weights_collection
+  ):
     self._config = config
     self._db = database
     self._items_coll = self._db[items_collection] if isinstance(items_collection,str) else items_collection
     self._status_coll = self._db[status_collection] if isinstance(status_collection,str) else status_collection
+    self._weights_coll = self._db[weights_collection] if isinstance(weights_collection,str) else weights_collection
 
 
   #
@@ -96,9 +108,37 @@ class WC():
     save weights in database
     """
     # update status in database
-    self._updateStatus(0.80,"Saving weights")
+    self._updateStatus(0.70,"Preparing weights for database update")
 
-    sleep(1)
+    timestamp = getCurrentTimestamp()
+
+    # check columns
+    # convert to a triplet item, term, value
+    updates = [
+      UpdateOne(
+        {
+          'term' : weight['term'],
+          'itemId' : weight['itemId'],
+        },
+        {
+          '$set' : {
+            'timestamp' : timestamp,
+            'value' : weight['value']
+          }
+        },
+        upsert=True
+      )
+      for weight
+      in self._weights.stack().reset_index().to_dict(orient='record')
+    ]
+    self._updateStatus(0.75,"Saving weights")
+    res = self._weights_coll.bulk_write(updates)
+
+    self._updateStatus(0.80,"Deleting old weights")
+    res = self._weights_coll.delete_many({'timestamp' : { "$lt" : timestamp }})
+
+    # update status in database
+    self._updateStatus(0.85,"Weights updated")
 
 
   @classmethod

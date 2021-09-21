@@ -76,11 +76,12 @@ def TF_IDuF(dfItems,terms_column='terms'):
   
   # multiply each row of dfTF by the matching word IDF
   dfOutput = dfTF.mul(
-    dfIDF.loc[dfIDF.index.repeat(len(dfTF))] \
-      .set_index(dfTF.index)
-    ) \
-    .drop(columns=['length','pid']
-  )
+    dfIDF.loc[
+      dfIDF.index.repeat(len(dfTF))
+    ] \
+    .set_index(dfTF.index)
+  ) \
+  .drop(columns=['length','pid'])
 
   # add provider column and reset index
   dfOutput = pd.merge(

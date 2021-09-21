@@ -22,4 +22,3 @@ class ComputeStatusResponseModel(BaseModel):
   progressPercent: Optional[float] = 0
   progressDescription: Optional[str] = ""
   inProgress: bool
-  

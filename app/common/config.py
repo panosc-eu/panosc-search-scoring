@@ -26,14 +26,15 @@ class Config:
     "version" : "v0-alpha",
   }
 
-  # list of enverinmental variables
+  # list of environmental variables
   env_variables = {
     "application" : "str", 
     "mongodb_url" : "str", 
     "port" : "int", 
     "application" : "str", 
     "description" : "str", 
-    "version" : "str"
+    "version" : "str",
+    "database" : "str"
   }
 
 
