@@ -44,7 +44,14 @@ test_items = {
       "title" : "Information overload",
       "description" : "Information overload (also known as infobesity,[1][2] infoxication,[3] information anxiety,[4] and information explosion[5]) is the difficulty in understanding an issue and effectively making decisions when one has too much information (TMI) about that issue,[6] and is generally associated with the excessive quantity of daily information. The term \"Information overload\" was first used in Bertram Gross' 1964 book, The Managing of Organizations,[7] and was further popularized by Alvin Toffler in his bestselling 1970 book Future Shock.[8] Speier et al. (1999) said that if input exceeds the processing capacity, information overload occurs, which is likely to reduce the quality of the decisions.[9] In a newer definition, Roetzel (2019) focuses on time and resources aspects. He states that when a decision-maker is given many sets of information, such as complexity, amount, and contradiction, the quality of its decision is decreased because of the individual’s limitation of scarce resources to process all the information and optimally make the best decision.[10] The advent of modern information technology has been a primary driver of information overload on multiple fronts: in quantity produced, ease of dissemination, and breadth of the audience reached. Longstanding technological factors have been further intensified by the rise of social media and the attention economy, which facilitates attention theft.[11][12] In the age of connective digital technologies, informatics, the Internet culture (or the digital culture), information overload is associated with over-exposure, excessive viewing of information, and input abundance of information and data.",
     }    
-  }
+  },
+  "item_6" : {
+    "id" : "68BA942F-A5BC-422D-8B91-4DE07441A312",
+    "fields" : {
+      "title" : "Data",
+      "description" : "Data are individual facts, statistics, or items of information, often numeric, that are collected through observation. In a more technical sense, data are a set of values of qualitative or quantitative variables about one or more persons or objects, while a datum (singular of data) is a single value of a single variable. Although the terms \"data\" and \"information\" are often used interchangeably, these terms have distinct meanings. In some popular publications, data are sometimes said to be transformed into information when they are viewed in context or in post-analysis. However, in academic treatments of the subject data are simply units of information. Data are used in scientific research, businesses management (e.g., sales data, revenue, profits, stock price), finance, governance (e.g., crime rates, unemployment rates, literacy rates), and in virtually every other form of human organizational activity (e.g., censuses of the number of homeless people by non-profit organizations)"
+    }
+  },
 }
 
 test_status_requested = datetime.datetime(2021, 9, 10, 8, 0, 36, 424175).isoformat()

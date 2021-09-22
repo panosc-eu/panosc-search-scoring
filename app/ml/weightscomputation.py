@@ -19,9 +19,15 @@ class WC():
   _status_coll: None
   _weights_coll: None
 
+  # group we need to compute the weights for
+  _group: None
+
   # dataframe with items to compute weights on
   _items: None
   _weights: None
+
+  # logs of actions
+  _logs = []
 
   
   #
@@ -42,6 +48,8 @@ class WC():
 
   #
   def _updateStatus(self, progress, message):
+    # insert in logs
+    self._logs.append("{}: {}".format(progress, message))
     # update status in database
     self._coll.update_many( 
       {}, 
@@ -54,16 +62,37 @@ class WC():
     )
 
 
+  # -------------------
+  # 
+  def groups_list(self):
+    """
+    returns the list of unique group present in the items collections
+    """
+    self._updateStatus(0.01,"Loading groups")
+    groups =  list(self._items_coll.distinct("group"))
+    self._updateStatus(0.02,"Found {} groups".format(len(groups)))
+    return groups
+
+
+  #
+  def select_group(self,group):
+    """
+    Set the group we want to compute the weights from
+    """
+    self._group = group
+    self._updateStatus(0.03,"Group set to {}".format(group))
+    
+
   # --------------------
   #
   def load(self):
     """
     Load items from database
     """
-    self._updateStatus(0.10,"Loading items")
+    self._updateStatus(0.10,"Loading items for group {}".format(self._group))
 
     # load all the items to be scored from the database
-    list_cursor = self._coll.find({})
+    list_cursor = self._coll.find({"group" : self._group})
 
     # save them in a dataframe
     self._items = pd.DataFrame(list(list_cursor))
@@ -119,6 +148,7 @@ class WC():
         {
           'term' : weight['term'],
           'itemId' : weight['itemId'],
+          'itemGroup' : self._group
         },
         {
           '$set' : {
@@ -135,22 +165,45 @@ class WC():
     res = self._weights_coll.bulk_write(updates)
 
     self._updateStatus(0.80,"Deleting old weights")
-    res = self._weights_coll.delete_many({'timestamp' : { "$lt" : timestamp }})
+    res = self._weights_coll.delete_many(
+      {
+        'group' : self._group , 
+        'timestamp' : { "$lt" : timestamp }
+      }
+    )
 
     # update status in database
     self._updateStatus(0.85,"Weights updated")
 
 
   @classmethod
-  def runWorkflow(cls, config, db, coll):
+  def runWorkflow(
+      cls, 
+      config, 
+      db, 
+      items_coll,
+      status_coll,
+      weights_coll
+  ):
     """
     run the complete work flow
     """
-    wc = cls(config, db, coll)
-    wc.load()
-    wc.extract()
-    wc.compute()
-    wc.save()
+    wc = cls(
+      config, 
+      db, 
+      items_coll,
+      status_coll,
+      weights_coll
+    )
+    for group in wc.groups_lists():
+
+      wc.select_group(group)
+      wc.load()
+      wc.extract()
+      wc.compute()
+      wc.save()
+
+    wc._updateStatus(1.00,'All weights computed and updated')
 
     return wc
 

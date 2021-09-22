@@ -8,6 +8,7 @@ class WeightModel(BaseModel):
   id: UUID = Field(alias='_id')
   term: str
   itemId: UUID
+  itemGroup: Optional[str] = "default"
   timestamp: datetime
   value: float
 
@@ -16,7 +17,7 @@ class WeightModel(BaseModel):
 
 
 class WeightResponseModel(WeightModel):
-  itemGroup: Optional[str] = "default"
+  pass
 
 
 # items count model

@@ -1,5 +1,7 @@
 # testing suite for Panosc Search Scoring
-# all items endpoints
+# endpoints: compute
+# notes: it does not actually compute the weights. 
+#        For the weight compute testing check test_weight_computation
 #  
 
 from json.decoder import JSONDecodeError
@@ -8,6 +10,7 @@ import pymongo
 import datetime
 import pytest
 from copy import deepcopy
+from mock import AsyncMock, Mock, patch
 
 from app import app
 import test.test_data as test_data
@@ -139,11 +142,16 @@ class TestCompute(pss_test_base):
 
 
   # post multi status
-  def test_post_multi_status(self):
+  @patch("app.routes.compute.WC",new_callable=AsyncMock)
+  def test_post_multi_status(self,mock_WC):
     # insert all status
     test_data = self._populateDatabase()
     # database has multiple status in db
     with TestClient(app.app) as client:
+      # mocks the call to the score compute class
+      WC = Mock()
+      mock_WC.runWorkflow.return_value = WC
+
       # request status
       try:
         response = client.post(
@@ -155,9 +163,14 @@ class TestCompute(pss_test_base):
     
 
   # post no status
-  def test_post_no_status(self):
+  @patch("app.routes.compute.WC",new_callable=AsyncMock)
+  def test_post_no_status(self,mock_WC):
     # database is empty = no status
     with TestClient(app.app) as client:
+      # mocks the call to the score compute class
+      WC = Mock()
+      mock_WC.runWorkflow.return_value = WC
+
       # request status
       response = client.post(
         self._endpoint_url
@@ -174,11 +187,16 @@ class TestCompute(pss_test_base):
 
 
   # post one status done
-  def test_post_status_done(self):
+  @patch("app.routes.compute.WC",new_callable=AsyncMock)
+  def test_post_status_done(self, mock_WC):
     # insert a status
     test_data = self._populateDatabase(itemKey='done')
     # database is empty = no status
     with TestClient(app.app) as client:
+      # mocks the call to the score compute class
+      WC = Mock()
+      mock_WC.runWorkflow.return_value = WC
+
       # request status
       response = client.post(
         self._endpoint_url
@@ -195,12 +213,17 @@ class TestCompute(pss_test_base):
 
 
   # post one status in progress
-  def test_post_in_progress(self):
+  @patch("app.routes.compute.WC",new_callable=AsyncMock)
+  def test_post_in_progress(self,mock_WC):
     # insert a status
     test_data = self._populateDatabase(itemKey='in_progress')
     test_data = self._cleanTestData(test_data)
     # database is empty = no status
     with TestClient(app.app) as client:
+      # mocks the call to the score compute class
+      WC = Mock()
+      mock_WC.runWorkflow.return_value = WC
+
       # request status
       response = client.post(
         self._endpoint_url
