@@ -54,9 +54,13 @@ test_items = {
   },
 }
 
-test_status_requested = datetime.datetime(2021, 9, 10, 8, 0, 36, 424175).isoformat()
-test_status_started = datetime.datetime(2021, 9, 10, 10, 1, 27, 593804).isoformat()
-test_status_ended = datetime.datetime(2021, 9, 10, 13, 26, 17, 91609).isoformat()
+#test_status_requested = datetime.datetime(2021, 9, 10, 8, 0, 36, 424175).isoformat()
+#test_status_started = datetime.datetime(2021, 9, 10, 10, 1, 27, 593804).isoformat()
+#test_status_ended = datetime.datetime(2021, 9, 10, 13, 26, 17, 91609).isoformat()
+test_status_requested = datetime.datetime(2021, 9, 10, 8, 0, 36, 424000)
+test_status_started = datetime.datetime(2021, 9, 10, 10, 1, 27, 593000)
+test_status_ended = datetime.datetime(2021, 9, 10, 13, 26, 17, 91000)
+
 
 test_status = {
   'not_run_yet' : {
@@ -64,7 +68,7 @@ test_status = {
     "requested" : None,
     "started" : None,
     "ended" : None,
-    "progressPercent" : 0,
+    "progressPercent" : 0.0,
     "progressDescription" : "",
     "inProgress" : False
   },
@@ -73,7 +77,7 @@ test_status = {
     "requested" : test_status_requested,
     "started" : None,
     "ended" : None,
-    "progressPercent" : 0,
+    "progressPercent" : 0.0,
     "progressDescription" : "Fake requested",
     "inProgress" : True
   },
@@ -91,15 +95,15 @@ test_status = {
     "requested" : test_status_requested,
     "started" : test_status_started,
     "ended" : test_status_ended,
-    "progressPercent" : 1,
+    "progressPercent" : 1.0,
     "progressDescription" : "Fake weight computation",
     "inProgress" : False
   }
 }
 
-test_weights_timestamp_1 = datetime.datetime(2021, 9, 10, 8, 0, 36, 424175).isoformat()
-test_weights_timestamp_2 = datetime.datetime(2021, 9, 10, 10, 1, 27, 593804).isoformat()
-test_weights_timestamp_3 = datetime.datetime(2021, 9, 10, 13, 26, 17, 91609).isoformat()
+test_weights_timestamp_1 = datetime.datetime(2021, 9, 10, 8, 0, 36, 42400).isoformat()
+test_weights_timestamp_2 = datetime.datetime(2021, 9, 10, 10, 1, 27, 593000).isoformat()
+test_weights_timestamp_3 = datetime.datetime(2021, 9, 10, 13, 26, 17, 91000).isoformat()
 
 test_weights = {
   'weight_1_1' : {

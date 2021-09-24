@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 
 # weight element
 class WeightModel(BaseModel):
-  id: UUID = Field(alias='_id')
+  id: Optional[UUID] = Field(default_factory=uuid4,alias='_id')
   term: str
   itemId: UUID
   itemGroup: Optional[str] = "default"

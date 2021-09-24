@@ -70,7 +70,7 @@ class TestCompute(pss_test_base):
       )
 
       assert response.status_code == 200
-      jsonResponse = response.json()
+      jsonResponse = ComputeStatusResponseModel(**response.json()).dict()
       assert jsonResponse == test_data
 
 
@@ -87,7 +87,7 @@ class TestCompute(pss_test_base):
       )
 
       assert response.status_code == 200
-      jsonResponse = response.json()
+      jsonResponse = ComputeStatusResponseModel(**response.json()).dict()
       assert jsonResponse == test_data
 
 
@@ -104,7 +104,7 @@ class TestCompute(pss_test_base):
       )
 
       assert response.status_code == 200
-      jsonResponse = response.json()
+      jsonResponse = ComputeStatusResponseModel(**response.json()).dict()
       assert jsonResponse == test_data
 
 
@@ -121,7 +121,7 @@ class TestCompute(pss_test_base):
       )
 
       assert response.status_code == 200
-      jsonResponse = response.json()
+      jsonResponse = ComputeStatusResponseModel(**response.json()).dict()
       assert jsonResponse == test_data
 
 
@@ -142,7 +142,7 @@ class TestCompute(pss_test_base):
 
 
   # post multi status
-  @patch("app.routes.compute.WC",new_callable=AsyncMock)
+  @patch("app.routers.compute.WC",new_callable=AsyncMock)
   def test_post_multi_status(self,mock_WC):
     # insert all status
     test_data = self._populateDatabase()
@@ -163,7 +163,7 @@ class TestCompute(pss_test_base):
     
 
   # post no status
-  @patch("app.routes.compute.WC",new_callable=AsyncMock)
+  @patch("app.routers.compute.WC",new_callable=AsyncMock)
   def test_post_no_status(self,mock_WC):
     # database is empty = no status
     with TestClient(app.app) as client:
@@ -187,7 +187,7 @@ class TestCompute(pss_test_base):
 
 
   # post one status done
-  @patch("app.routes.compute.WC",new_callable=AsyncMock)
+  @patch("app.routers.compute.WC",new_callable=AsyncMock)
   def test_post_status_done(self, mock_WC):
     # insert a status
     test_data = self._populateDatabase(itemKey='done')
@@ -213,7 +213,7 @@ class TestCompute(pss_test_base):
 
 
   # post one status in progress
-  @patch("app.routes.compute.WC",new_callable=AsyncMock)
+  @patch("app.routers.compute.WC",new_callable=AsyncMock)
   def test_post_in_progress(self,mock_WC):
     # insert a status
     test_data = self._populateDatabase(itemKey='in_progress')
@@ -230,7 +230,7 @@ class TestCompute(pss_test_base):
       )
 
       assert response.status_code == 409
-      jsonResponse = response.json()
+      jsonResponse = ComputeStatusResponseModel(**response.json()).dict()
       assert jsonResponse == test_data
 
 

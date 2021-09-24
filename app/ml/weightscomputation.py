@@ -1,8 +1,12 @@
+from app.models.compute import ComputeStatusModel
+from typing import Union
 from time import sleep
 import pandas as pd
 import numpy as np
 import json
-from pymongo import UpdateOne
+from pymongo import InsertOne
+from fastapi.encoders import jsonable_encoder
+from datetime import datetime
 
 from app.models.weights import WeightModel
 import app.ml.preprocessItemsText as pit
@@ -13,18 +17,18 @@ from ..common.utils import getCurrentTimestamp
 class WC():
 
   # database objects
-  _config : None
-  _db: None
-  _items_coll: None
-  _status_coll: None
-  _weights_coll: None
+  _config = None
+  _db = None
+  _items_coll = None
+  _status_coll = None
+  _weights_coll = None
 
   # group we need to compute the weights for
-  _group: None
+  _group = None
 
   # dataframe with items to compute weights on
-  _items: None
-  _weights: None
+  _items = None
+  _weights = None
 
   # logs of actions
   _logs = []
@@ -47,125 +51,177 @@ class WC():
 
 
   #
-  def _updateStatus(self, progress, message):
+  async def _updateStatus(
+      self, 
+      progress: float, 
+      message: str,
+      started: Union[datetime, None] = None,
+      ended: Union[datetime, None] = None,
+      inProgress: bool = True
+  ):
     # insert in logs
     self._logs.append("{}: {}".format(progress, message))
+    # prepare status
+    status = { 
+      "progressPercent" : progress,
+      "progressDescription" : message,
+      "inProgress" : inProgress
+    }
+    # add additional fields
+    if started is not None:
+      status['started'] = started
+    if ended is not None:
+      status['ended'] = ended
+    # check that typing is correct
+    ComputeStatusModel(**status)
     # update status in database
-    self._coll.update_many( 
+    await self._status_coll.update_many( 
       {}, 
       { 
-        "$set" : { 
-          "progressPercent" : progress,
-          "progressDescription" : message
-        }
+        "$set" : status
       }
     )
 
 
   # -------------------
   # 
-  def groups_list(self):
+  async def groups_list(self):
     """
     returns the list of unique group present in the items collections
     """
-    self._updateStatus(0.01,"Loading groups")
-    groups =  list(self._items_coll.distinct("group"))
-    self._updateStatus(0.02,"Found {} groups".format(len(groups)))
+    await self._updateStatus(0.01,"Loading groups")
+    res = await self._items_coll.aggregate(
+      [
+        {'$project' : {
+          '_id' : 0,
+          'group' : { "$ifNull": [ "$group", "default"] }
+        }},
+        {'$group' : {
+          '_id' : None,
+          'groups' : { "$addToSet" : "$group" }
+        }}
+      ]
+    ) \
+      .to_list(length=None)
+    groups = res[0]['groups']
+    # groups =  list(await self._items_coll.distinct("group"))
+    # self._updateStatus(0.02,"Checking for default group")
+    # if 'default' not in groups
+    #   default_items = list(self._items_coll.find({"group" : None}))
+    #   if len(default_items) > 0:
+    #     groups.append('default')
+    print(len(groups))
+    await self._updateStatus(0.03,"Found {} groups".format(len(groups)))
     return groups
 
 
   #
-  def select_group(self,group):
+  async def select_group(self,group):
     """
     Set the group we want to compute the weights from
     """
     self._group = group
-    self._updateStatus(0.03,"Group set to {}".format(group))
+    await self._updateStatus(0.05,"Group set to {}".format(group))
     
 
   # --------------------
   #
-  def load(self):
+  async def load(self):
     """
     Load items from database
     """
-    self._updateStatus(0.10,"Loading items for group {}".format(self._group))
+    await self._updateStatus(0.10,"Loading items for group {}".format(self._group))
 
     # load all the items to be scored from the database
-    list_cursor = self._coll.find({"group" : self._group})
+    if self._group == 'default':
+      list_cursor = await self._items_coll.find(
+        { "$or" : [
+          { "group" : { "$exists" : False } },
+          { "group" : self._group }
+        ]}
+      ) \
+        .to_list(length=None)
+    else:
+      list_cursor = await self._items_coll.find({"group" : self._group}).to_list(length=None)
 
     # save them in a dataframe
-    self._items = pd.DataFrame(list(list_cursor))
+    self._items = pd.DataFrame(list_cursor).rename(columns={'_id':'id'})
 
     # update status in database
-    self._updateStatus(0.20,"{} items loaded".format(len(self._items)))
+    await self._updateStatus(0.20,"{} items loaded".format(len(self._items)))
 
 
   #
-  def extract(self):
+  async def extract(self):
     """
     Extract terms from items
     """
     # update status in database
-    self._updateStatus(0.30,"Extracting terms")
+    await self._updateStatus(0.30,"Extracting terms")
 
     # combine meaningful fields for each item and extract terms
     self._items['terms'] = self._items.apply(pit.preprocessItemText,axis=1)
 
     # update status in database
-    self._updateStatus(0.40,"Terms extracted")
+    await self._updateStatus(0.40,"Terms extracted")
     
 
   #
-  def compute(self):
+  async def compute(self):
     """
     compute weights for terms
     """
     # update status in database
-    self._updateStatus(0.50,"Computing weights")
+    await self._updateStatus(0.50,"Computing weights")
 
     # computes weights for pair item,term
     self._weights = tf_iduf.TF_IDuF(self._items)
 
     # update status in database
-    self._updateStatus(0.60,"Weights computed")
+    await self._updateStatus(0.60,"Weights computed")
 
 
   #
-  def save(self):
+  async def save(self):
     """
     save weights in database
     """
     # update status in database
-    self._updateStatus(0.70,"Preparing weights for database update")
+    await self._updateStatus(0.70,"Preparing weights for database update")
 
     timestamp = getCurrentTimestamp()
 
-    # check columns
+    # stack data frame
+    print(self._weights.head())
+    stacked_weights = self._weights.stack() \
+      .reset_index() \
+      .rename(
+        columns={
+          'id' : 'itemId',
+          'level_1':'term',
+          0:'value'})
+    print(stacked_weights.head())
     # convert to a triplet item, term, value
-    updates = [
-      UpdateOne(
-        {
-          'term' : weight['term'],
-          'itemId' : weight['itemId'],
-          'itemGroup' : self._group
-        },
-        {
-          '$set' : {
+    new_weights = [
+      InsertOne(
+        jsonable_encoder(
+          WeightModel(**{
+            'term' : weight['term'],
+            'itemId' : weight['itemId'],
+            'itemGroup' : self._group,
             'timestamp' : timestamp,
             'value' : weight['value']
-          }
-        },
-        upsert=True
+          })
+        )
       )
       for weight
-      in self._weights.stack().reset_index().to_dict(orient='record')
+      in stacked_weights.to_dict(orient='records')
     ]
-    self._updateStatus(0.75,"Saving weights")
-    res = self._weights_coll.bulk_write(updates)
+    await self._updateStatus(0.75,"Saving weights")
+    res = await self._weights_coll.bulk_write(new_weights)
 
-    self._updateStatus(0.80,"Deleting old weights")
-    res = self._weights_coll.delete_many(
+    await self._updateStatus(0.80,"Deleting old weights")
+    res = await self._weights_coll.delete_many(
       {
         'group' : self._group , 
         'timestamp' : { "$lt" : timestamp }
@@ -173,11 +229,11 @@ class WC():
     )
 
     # update status in database
-    self._updateStatus(0.85,"Weights updated")
+    await self._updateStatus(0.85,"Weights updated")
 
 
   @classmethod
-  def runWorkflow(
+  async def runWorkflow(
       cls, 
       config, 
       db, 
@@ -188,6 +244,7 @@ class WC():
     """
     run the complete work flow
     """
+    # instantiate class for weight computation
     wc = cls(
       config, 
       db, 
@@ -195,15 +252,23 @@ class WC():
       status_coll,
       weights_coll
     )
-    for group in wc.groups_lists():
-
-      wc.select_group(group)
-      wc.load()
-      wc.extract()
-      wc.compute()
-      wc.save()
-
-    wc._updateStatus(1.00,'All weights computed and updated')
+    # update status to started
+    await wc._updateStatus(0,"Weights computation started",started=getCurrentTimestamp())
+    # get list of groups/corpus
+    groups = await wc.groups_list()
+    # loop on all the groups and for each computes the weights
+    for group in groups:
+      await wc.select_group(group)
+      await wc.load()
+      await wc.extract()
+      await wc.compute()
+      await wc.save()
+    # update status to completed
+    await wc._updateStatus(
+      1.00,
+      'All weights computed and updated',
+      ended=getCurrentTimestamp(),
+      inProgress=False)
 
     return wc
 

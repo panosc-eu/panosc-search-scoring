@@ -33,6 +33,9 @@ class TestWeightsComputation(pss_test_base):
   # define collection we want to work with
   _endpoint_name = itemsRouter.endpointRoute
   _data = test_data.test_items
+  # initial status needed for the test
+  # check in test data for possible values
+  _initial_status = 'not_run_yet'
 
 
   # properties needed to test class instance
@@ -44,6 +47,8 @@ class TestWeightsComputation(pss_test_base):
   _wc_weights_collection = None 
   _wc_groups_list = None
   _wc_selected_group = None
+  _wc_group_items = None
+  _wc_group_items_ids = None
 
 
   # auxiliary functions
@@ -51,6 +56,22 @@ class TestWeightsComputation(pss_test_base):
     outData = deepcopy(inData[0])
     del outData['id']
     return outData
+
+
+  # overload populate database 
+  # we need to insert items and weights
+  def _populateDatabase(self):
+    # insert status
+    self._db_collection = self._db_database[computeRouter.endpointRoute]
+    self._data = test_data.test_status
+    res1 = super()._populateDatabase(itemKey=self._initial_status)
+
+    # first inserts items
+    self._db_collection = self._db_database[itemsRouter.endpointRoute]
+    self._data = test_data.test_items
+    res2 = super()._populateDatabase()
+
+    return res2
 
 
   #
@@ -61,18 +82,29 @@ class TestWeightsComputation(pss_test_base):
     # instantiate config class
     self._wc_config = Config()
     # instantiate database and collections
-    db_client = AsyncIOMotorClient(config.mongodb_url)
-    self._wc_database = db_client[config.database]
-    self._wc_items_collection = db_database[itemsRouter.endpointRoute]
-    self._wc_status_collection = db_database[computeRouter.endpointRoute]
-    self._wc_weights_collection = db_database[weightsRouter.endpointRoute]
+    db_client = AsyncIOMotorClient(self._wc_config.mongodb_url)
+    self._wc_database = db_client[self._wc_config.database]
+    self._wc_items_collection = self._wc_database[itemsRouter.endpointRoute]
+    self._wc_status_collection = self._wc_database[computeRouter.endpointRoute]
+    self._wc_weights_collection = self._wc_database[weightsRouter.endpointRoute]
     # obtains list of groups from test data
-    self._wc_groups_list = list(set([item['group'] for item in test_data.test_items.values()]))
-    self._wc_selected_group = self._groups_list[0]
+    self._wc_groups_list = list(set([
+      item['group'] if 'group' in item.keys() else 'default'
+      for item 
+      in test_data.test_items.values()
+    ]))
+    #self._wc_selected_group = [item for item in self._wc_groups_list if item != 'default'][0]
+    self._wc_selected_group = self._wc_groups_list[0]
     # items and ids of the group
-    self._wc_group_items = [item for item in test_data.test_items.values() if item['group'] == self._wc_selected_group]
+    self._wc_group_items = [
+      item 
+      for item 
+      in test_data.test_items.values() 
+      if ('group' in item.keys() and item['group'] == self._wc_selected_group) \
+        or ( self._wc_selected_group == 'default' and 'group' not in item.keys() )
+    ]
     # check items id
-    self._wc_items_ids = [item['_id'] for item in self._wc_group_items]
+    self._wc_group_items_ids = [item['id'].lower() for item in self._wc_group_items]
 
 
   # 
@@ -100,8 +132,11 @@ class TestWeightsComputation(pss_test_base):
 
 
   # list groups
-  def test_list_groups(self):
+  @pytest.mark.asyncio
+  async def test_list_groups(self):
     print("test_weight_computation.test_list_group")
+    # set initial status
+    self._initial_status = 'in_progress'
     # insert a items to be scored
     self._initialize_environment_for_class_test()
     # instantiate class
@@ -113,19 +148,26 @@ class TestWeightsComputation(pss_test_base):
       self._wc_weights_collection
     )
     # retrieve group list
-    wc_groups_list = wc.groups_list()
+    wc_groups_list = await wc.groups_list()
+    print(wc_groups_list)
     # test list
-    assert wc_groups_list == self._wc_groups_list
+    assert sorted(wc_groups_list) == sorted(self._wc_groups_list)
     # check status
-    db_status = self._db_database[computeRouter.endpointRoute].find_one()
+    db_status = await self._wc_status_collection.find_one()
     # check that the status is the final status
-    assert db_status['progressPercent'] == 0.02
+    assert db_status['progressPercent'] == 0.03
+    assert db_status['started'] is not None
+    assert db_status['ended'] is None
+    assert db_status['inProgress'] is True
 
 
 
   # select group
-  def test_select_group(self):
+  @pytest.mark.asyncio
+  async def test_select_group(self):
     print("test_weight_computation.test_select_group")
+    # set initial status
+    self._initial_status = 'in_progress'
     # insert a items to be scored
     self._initialize_environment_for_class_test()
     # instantiate class
@@ -137,18 +179,25 @@ class TestWeightsComputation(pss_test_base):
       self._wc_weights_collection
     )
     # select group
-    wc.select_group(self._wc_selected_group)
+    print(self._wc_selected_group)
+    await wc.select_group(self._wc_selected_group)
     # test group
     assert wc._group == self._wc_selected_group
     # check status
-    db_status = self._db_database[computeRouter.endpointRoute].find_one()
+    db_status = await self._wc_status_collection.find_one()
     # check that the status is the final status
-    assert db_status['progressPercent'] == 0.03
+    assert db_status['progressPercent'] == 0.05
+    assert db_status['started'] is not None
+    assert db_status['ended'] is None
+    assert db_status['inProgress'] is True
 
 
   # load
-  def test_load_items(self):
+  @pytest.mark.asyncio
+  async def test_load_items(self):
     print("test_weight_computation.test_load_items")
+    # set initial status
+    self._initial_status = 'in_progress'
     # insert a items to be scored
     self._initialize_environment_for_class_test()
     # instantiate class
@@ -160,26 +209,32 @@ class TestWeightsComputation(pss_test_base):
       self._wc_weights_collection
     )
     # select group
-    wc.select_group(self._wc_selected_group)
+    await wc.select_group(self._wc_selected_group)
     # invoke load method
-    wc.load()
+    await wc.load()
     # check values loaded
     # they are in a pandas dataframe
     #
     # first number of elements
     assert len(wc._items) == len(self._wc_group_items)
     # check items id
-    wc_items_ids = pd.unique(wc._items['_id'])
-    assert wc_items_ids == self._wc_items_ids
+    wc_items_ids = pd.unique(wc._items['id'])
+    assert sorted(wc_items_ids) == sorted(self._wc_group_items_ids)
     # check status
-    db_status = self._db_database[computeRouter.endpointRoute].find_one()
+    db_status = await self._wc_status_collection.find_one()
     # check that the status is the final status
     assert db_status['progressPercent'] == 0.20
+    assert db_status['started'] is not None
+    assert db_status['ended'] is None
+    assert db_status['inProgress'] is True
 
 
   # extract
-  def test_extract_terms(self):
+  @pytest.mark.asyncio
+  async def test_extract_terms(self):
     print("test_weight_computation.test_extract_terms")
+    # set initial status
+    self._initial_status = 'in_progress'
     # insert a items to be scored
     self._initialize_environment_for_class_test()
     # instantiate class
@@ -190,26 +245,31 @@ class TestWeightsComputation(pss_test_base):
       self._wc_status_collection, 
       self._wc_weights_collection
     )
-    # select group
-    wc.select_group(self._wc_selected_group)
-    # load items
-    wc.load()
+    # prepare for extract
+    await wc.select_group(self._wc_selected_group)
+    await wc.load()
     # invoke extract method
-    wc.extract()
+    await wc.extract()
     # check if the new column terms has been created in the items dataframe
     assert 'terms' in wc._items.columns
     # check if we have empty cell in the column
     terms_extracted = wc._items.apply(lambda row: len(row['terms']) > 0, axis=1)
     assert terms_extracted.all()
     # check status
-    db_status = self._db_database[computeRouter.endpointRoute].find_one()
+    db_status = await self._wc_status_collection.find_one()
     # check that the status is the final status
     assert db_status['progressPercent'] == 0.40
+    assert db_status['started'] is not None
+    assert db_status['ended'] is None
+    assert db_status['inProgress'] is True
 
 
   # compute
-  def test_compute_weights(self):
+  @pytest.mark.asyncio
+  async def test_compute_weights(self):
     print("test_weight_computation.test_compute_weight")
+    # set initial status
+    self._initial_status = 'in_progress'
     # insert a items to be scored
     self._initialize_environment_for_class_test()
     # instantiate class
@@ -220,28 +280,35 @@ class TestWeightsComputation(pss_test_base):
       self._wc_status_collection, 
       self._wc_weights_collection
     )
-    # select group
-    wc.select_group(self._wc_selected_group)
     # prepare for this test
-    wc.load()
-    wc.extract()
+    await wc.select_group(self._wc_selected_group)
+    await wc.load()
+    await wc.extract()
+    print(wc._items.head())
     # invoke compute method
-    wc.compute()
+    await wc.compute()
     # check that something was saved in the weights place holder
+    print(wc._weights.head())
     assert wc._weights is not None
     # check that rows match the items id
-    assert wc._weights.index == self._wc_items_ids
+    assert sorted(wc._weights.index.tolist()) == sorted(self._wc_group_items_ids)
     # check that there are some weights that are greater than zero
     assert wc._weights[wc._weights > 0].count().sum() > 0
     # check status
-    db_status = self._db_database[computeRouter.endpointRoute].find_one()
+    db_status = await self._wc_status_collection.find_one()
     # check that the status is the final status
     assert db_status['progressPercent'] == 0.60
+    assert db_status['started'] is not None
+    assert db_status['ended'] is None
+    assert db_status['inProgress'] is True
 
 
   # save
-  def test_save_weights(self):
+  @pytest.mark.asyncio
+  async def test_save_weights(self):
     print("test_weight_computation.test_save_weight")
+    # set initial status
+    self._initial_status = 'in_progress'
     # insert a items to be scored
     self._initialize_environment_for_class_test()
     # instantiate class
@@ -253,32 +320,38 @@ class TestWeightsComputation(pss_test_base):
       self._wc_weights_collection
     )
     # select group
-    wc.select_group(self._wc_selected_group)
+    await wc.select_group(self._wc_selected_group)
     # prepare for this test
-    wc.load()
-    wc.extract()
-    wc.compute()
+    await wc.load()
+    await wc.extract()
+    await wc.compute()
     # invoke save method
-    wc.save()
+    await wc.save()
     # find number of elements that we are expecting in the collection
     wc_number_of_weights = len(wc._weights) * len(wc._weights.columns)
     # count weights in collection
-    db_number_of_weights = self._db_database[weightsRouter.endpointRoute].count_documents()
+    db_number_of_weights = await self._wc_weights_collection.count_documents({})
     # check that something was saved in the weights place holder
     assert wc_number_of_weights == db_number_of_weights
     # check status
-    db_status = self._db_database[computeRouter.endpointRoute].find_one()
+    db_status = await self._wc_status_collection.find_one()
     # check that the status is the final status
     assert db_status['progressPercent'] == 0.85
+    assert db_status['started'] is not None
+    assert db_status['ended'] is None
+    assert db_status['inProgress'] is True
     
 
   # runWorkflow
-  def test_run_workflow(self):
+  @pytest.mark.asyncio
+  async def test_run_workflow(self):
     print("test_weight_computation.test_run_workflow")
+    # set initial status
+    self._initial_status = 'requested'
     # insert a items to be scored
     self._initialize_environment_for_class_test()
     # instantiate class
-    wc = WC.runWorkflow(
+    wc = await WC.runWorkflow(
       self._wc_config, 
       self._wc_database, 
       self._wc_items_collection, 
@@ -286,18 +359,20 @@ class TestWeightsComputation(pss_test_base):
       self._wc_weights_collection
     )
     # count weights in collection
-    db_number_of_weights = self._db_database[weightsRouter.endpointRoute].count_documents()
+    db_number_of_weights = await self._wc_weights_collection.count_documents({})
     # check that something was saved in the weights place holder
     assert db_number_of_weights > 0
     # check one element to match the model
-    db_weight = self._db_database[weightsRouter.endpointRoute].find_one()
+    db_weight = await self._wc_weights_collection.find_one()
+    print(db_weight)
     try:
       db_weight_model = WeightModel(**db_weight)
       assert True
     except:
       assert False
     # check status
-    db_status = self._db_database[computeRouter.endpointRoute].find_one()
+    db_status = await self._wc_status_collection.find_one()
+    print(db_status)
     # does it match the model
     try:
       db_status_model = ComputeStatusModel(**db_status)
@@ -305,7 +380,9 @@ class TestWeightsComputation(pss_test_base):
     except:
       assert False
     # check that the status is the final status
-    assert db_status_model['progressPercent'] == 1.00
-
+    assert db_status['progressPercent'] == 1.00
+    assert db_status['started'] is not None
+    assert db_status['ended'] is not None
+    assert db_status['inProgress'] is False
 
 

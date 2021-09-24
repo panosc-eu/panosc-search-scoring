@@ -22,7 +22,7 @@ def TF(row,terms_column='terms'):
   # build output and return
   return {
     **{
-      'pid': row['pid'],
+      'id': row['id'],
       'length': nwords
     },
     **{
@@ -48,7 +48,7 @@ def IDF(df):
   return {
       column: math.log10(1+nDocs/len(df[df[column]!=0]))
       for column 
-      in df.drop(columns=['length','pid','provider']).columns.to_list()
+      in df.drop(columns=['length','id']).columns.to_list()
   }
 
 
@@ -81,15 +81,18 @@ def TF_IDuF(dfItems,terms_column='terms'):
     ] \
     .set_index(dfTF.index)
   ) \
-  .drop(columns=['length','pid'])
+  .drop(columns=['length','id'])
 
   # add provider column and reset index
   dfOutput = pd.merge(
     dfOutput,
-    dfTF[['pid']],
+    dfTF[['id']],
     left_index=True,
     right_index=True
   )
+
+  # set id as row index
+  dfOutput.set_index('id',inplace=True)
   
   return dfOutput
 

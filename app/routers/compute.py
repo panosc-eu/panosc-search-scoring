@@ -14,6 +14,9 @@ from starlette.responses import Response
 from ..models.compute import ComputeStatusModel,ComputeStatusResponseModel
 from ..common.utils import getCurrentIsoTimestamp, getCurrentTimestamp
 from ..ml.weightscomputation import WC
+from ..routers.items import endpointRoute as itemsCollectionName
+from ..routers.weights import endpointRoute as weightsCollectionName
+
 
 # main tag, route and database collection for compute
 endpointRoute = "compute"
@@ -95,7 +98,12 @@ async def run_background_weight_computation(config, db, coll):
   )
 
   # run the whole workflow
-  wc = WC.runWorkflow(config,db,coll)
+  wc = await WC.runWorkflow(
+    config,
+    db,
+    itemsCollectionName,
+    endpointRoute,
+    weightsCollectionName)
 
   # update status in database
   res = await coll.update_many( 
