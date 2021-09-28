@@ -96,7 +96,7 @@ async def get_weights(
     group)
 
   weights = await db[endpointRoute].aggregate(pipeline).to_list(length=None)
-  print(weights)
+
   return jsonable_encoder(weights, by_alias=False)
 
     
@@ -121,11 +121,10 @@ async def count_weights(
     group,
     True
   )
-  print(pipeline)
 
   # retrieve results
   count = await db[endpointRoute].aggregate(pipeline).to_list(length=None)
-  print(count)
+
   return {
     "count": count[0]['count']
   }

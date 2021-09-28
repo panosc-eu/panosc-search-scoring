@@ -92,7 +92,7 @@ async def count_items(req: Request):
 
 # Route GET:/items/<id>
 @router.get(
-  "/{item_id}",
+  "/{item_id:path}",
   response_model=ItemModel,
   status_code=200,
   response_model_by_alias=False,
@@ -103,13 +103,15 @@ async def count_items(req: Request):
   }
 )
 async def get_item(
-    req: Request, 
-    item_id: str
+    req: Request
 ):
   # extract db and config from the app class
   config = req.app.state.config
   db = req.app.state.db_database
   
+  item_id = req.path_params['item_id']
+
+  print("get item : " + item_id)
   # retrieve results
   item = await db[endpointRoute].find_one({'_id':item_id})
   if not item:
@@ -162,18 +164,20 @@ async def new_items(req: Request, inputItems = Body(...)): #List[ItemCreateModel
 
 # Route DELETE:/items/<id>
 @router.delete(
-  "/{item_id}",
+  "/{item_id:path}",
   response_model=ItemDeleteResponseModel,
   status_code=200
 )
 async def delete_item(
-    req: Request, 
-    item_id: str
+    req: Request
 ):
   # extract db and config from the app class
   config = req.app.state.config
   db = req.app.state.db_database
 
+  item_id = req.path_params['item_id']
+
+  print('Delete : ' + item_id)
   # delete results
   res = await db[endpointRoute].delete_many({'_id':item_id})
   # fix id issue

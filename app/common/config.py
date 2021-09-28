@@ -24,17 +24,18 @@ class Config:
     "application" : "PSS",
     "description" : "PaNOSC search scoring",
     "version" : "v0-alpha",
+    "waitToStartCompute" : 5
   }
 
   # list of environmental variables
   env_variables = {
-    "application" : "str", 
     "mongodb_url" : "str", 
-    "port" : "int", 
+    "port" : "int",
+    "database" : "str", 
     "application" : "str", 
     "description" : "str", 
     "version" : "str",
-    "database" : "str"
+    "waitToStartCompute" : "int"
   }
 
 

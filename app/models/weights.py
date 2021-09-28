@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 class WeightModel(BaseModel):
   id: Optional[UUID] = Field(default_factory=uuid4,alias='_id')
   term: str
-  itemId: UUID
+  itemId: str
   itemGroup: Optional[str] = "default"
   timestamp: datetime
   value: float

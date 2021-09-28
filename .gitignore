@@ -139,3 +139,9 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+#
+# exclude temporary files, credentials files and working jupyter notebooks
+original_notebook_scripts/
+notebooks/credentials.json
+notebooks/*-wip.ipynb

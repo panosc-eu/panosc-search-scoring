@@ -5,7 +5,8 @@ from uuid import UUID, uuid4
 # item model
 class ItemModel(BaseModel):
   #id: UUID = Field(default_factory=uuid4,alias='_id')
-  id: UUID = Field(alias='_id')
+  #id: UUID = Field(alias='_id')
+  id: str = Field(alias='_id')
   group: str = "default"
   fields: Dict = {}
 

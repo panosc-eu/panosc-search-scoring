@@ -7,12 +7,15 @@ import json
 from pymongo import InsertOne
 from fastapi.encoders import jsonable_encoder
 from datetime import datetime
+from uuid import uuid4
 
 from app.models.weights import WeightModel
 import app.ml.preprocessItemsText as pit
 import app.ml.tf_iduf as tf_iduf
 from ..common.utils import getCurrentTimestamp
 
+
+_get_uuid = lambda: str(uuid4())
 
 class WC():
 
@@ -110,7 +113,6 @@ class WC():
     #   default_items = list(self._items_coll.find({"group" : None}))
     #   if len(default_items) > 0:
     #     groups.append('default')
-    print(len(groups))
     await self._updateStatus(0.03,"Found {} groups".format(len(groups)))
     return groups
 
@@ -192,7 +194,6 @@ class WC():
     timestamp = getCurrentTimestamp()
 
     # stack data frame
-    print(self._weights.head())
     stacked_weights = self._weights.stack() \
       .reset_index() \
       .rename(
@@ -200,36 +201,36 @@ class WC():
           'id' : 'itemId',
           'level_1':'term',
           0:'value'})
-    print(stacked_weights.head())
     # convert to a triplet item, term, value
     new_weights = [
       InsertOne(
-        jsonable_encoder(
-          WeightModel(**{
-            'term' : weight['term'],
-            'itemId' : weight['itemId'],
-            'itemGroup' : self._group,
-            'timestamp' : timestamp,
-            'value' : weight['value']
-          })
-        )
+        {
+          '_id' : _get_uuid(),
+          'term' : weight['term'],
+          'itemId' : weight['itemId'],
+          'itemGroup' : self._group,
+          'timestamp' : timestamp,
+          'value' : weight['value']
+        }
       )
       for weight
       in stacked_weights.to_dict(orient='records')
+      if weight['value'] > 0
     ]
-    await self._updateStatus(0.75,"Saving weights")
+
+    await self._updateStatus(0.80,"Saving weights")
     res = await self._weights_coll.bulk_write(new_weights)
 
-    await self._updateStatus(0.80,"Deleting old weights")
+    await self._updateStatus(0.85,"Deleting old weights")
     res = await self._weights_coll.delete_many(
       {
-        'group' : self._group , 
+        'itemGroup' : self._group , 
         'timestamp' : { "$lt" : timestamp }
       }
     )
 
     # update status in database
-    await self._updateStatus(0.85,"Weights updated")
+    await self._updateStatus(0.90,"Weights updated")
 
 
   @classmethod
