@@ -84,6 +84,7 @@ async def count_items(req: Request):
   db = req.app.state.db_database
   
   # retrieve results
+  print(endpointRoute)
   count = await db[endpointRoute].count_documents({})
   return {
     "count": count

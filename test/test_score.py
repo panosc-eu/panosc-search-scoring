@@ -55,8 +55,8 @@ class TestTerms(pss_test_base):
       SC.getQueryTerms.return_value = terms
       SC.getScores.return_value = scores
       SC.getScoresLength.return_value = len(scores)
-      type(SC).started = PropertyMock(return_value='started')
-      type(SC).ended = PropertyMock(return_value='ended')
+      type(SC).started = PropertyMock(return_value=test_data.test_scores_started)
+      type(SC).ended = PropertyMock(return_value=test_data.test_scores_ended)
       
       #mock_sc = mock_SC.return_value
       mock_SC.runWorkflow.return_value = SC
@@ -80,6 +80,6 @@ class TestTerms(pss_test_base):
       assert jsonResponse['scores'] == scores
       assert jsonResponse['dimension'] == len(scores)
       assert jsonResponse['computeInProgress'] == False
-      assert jsonResponse['started'] == 'started'
-      assert jsonResponse['ended'] == 'ended'
+      assert jsonResponse['started'] == test_data.test_scores_started.isoformat()
+      assert jsonResponse['ended'] == test_data.test_scores_ended.isoformat()
 

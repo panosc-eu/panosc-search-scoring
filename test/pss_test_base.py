@@ -133,6 +133,7 @@ class pss_test_base:
       for item 
       in outData
     ])
+    print(res.inserted_ids)
 
     return outData
 

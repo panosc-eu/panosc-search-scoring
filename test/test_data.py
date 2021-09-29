@@ -172,6 +172,9 @@ test_weights = {
 }
 
 
+test_scores_started = datetime.datetime(2021, 9, 10, 8, 0, 36, 424000)
+test_scores_ended = datetime.datetime(2021, 9, 10, 10, 1, 27, 593000)
+
 test_scores = {
   'data_1' : {
     'query' : 'test the scoring',

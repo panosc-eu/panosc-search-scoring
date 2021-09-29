@@ -58,6 +58,6 @@ async def get_scores(req: Request, scoreRequest = Body(...)):
     'dimension' : oSC.getScoresLength(),
     'computeInProgress' : computeInProgress,
     'started' : oSC.started,
-    'ended' : oSC._ts_ended
+    'ended' : oSC.ended
   }
 

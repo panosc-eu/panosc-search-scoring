@@ -332,11 +332,12 @@ class TestWeightsComputation(pss_test_base):
     # count weights in collection
     db_number_of_weights = await self._wc_weights_collection.count_documents({})
     # check that something was saved in the weights place holder
-    assert wc_number_of_weights == db_number_of_weights
+    assert wc_number_of_weights >= db_number_of_weights
+    assert db_number_of_weights > 0
     # check status
     db_status = await self._wc_status_collection.find_one()
     # check that the status is the final status
-    assert db_status['progressPercent'] == 0.85
+    assert db_status['progressPercent'] == 0.90
     assert db_status['started'] is not None
     assert db_status['ended'] is None
     assert db_status['inProgress'] is True
