@@ -10,7 +10,7 @@ import datetime
 import pytest
 from copy import deepcopy
 from collections import Counter
-from mock import AsyncMock, Mock, patch
+from mock import AsyncMock, Mock, patch, PropertyMock
 
 from app import app
 import test.test_data as test_data
@@ -55,6 +55,8 @@ class TestTerms(pss_test_base):
       SC.getQueryTerms.return_value = terms
       SC.getScores.return_value = scores
       SC.getScoresLength.return_value = len(scores)
+      type(SC).started = PropertyMock(return_value='started')
+      type(SC).ended = PropertyMock(return_value='ended')
       
       #mock_sc = mock_SC.return_value
       mock_SC.runWorkflow.return_value = SC
@@ -78,4 +80,6 @@ class TestTerms(pss_test_base):
       assert jsonResponse['scores'] == scores
       assert jsonResponse['dimension'] == len(scores)
       assert jsonResponse['computeInProgress'] == False
+      assert jsonResponse['started'] == 'started'
+      assert jsonResponse['ended'] == 'ended'
 

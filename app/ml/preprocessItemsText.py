@@ -90,14 +90,17 @@ def removeShortWords(instring):
 
 
 # preprocess each single entry
-def preprocessItemText(row):
+def preprocessItemText(item):
   """
   extract the meaningful fields from the item (which is passed in as a pandas dataframe row)
   Convert them in a string, using json.dumps
   and run all the preprocess steps as highlighted in the PaNOSC search scoring report
   """
 
-  outstring = json.dumps(row['fields'])
+  # check if input item is a string
+  # if it is not, we assume that it is a panda dataframe row
+  outstring = item if isinstance(item,str) else json.dumps(item['fields'])
+
   outstring = outstring.lower()
   outstring = removePunctuation(outstring,punctuation_symbols)
   outstring = removeStopWords(outstring)

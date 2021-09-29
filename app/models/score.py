@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel
 from typing import Optional, List
 from uuid import UUID
@@ -13,7 +14,7 @@ class ScoreRequestModel(BaseModel):
 class ScoredItemModel(BaseModel):
   id: str
   score: float = 0.0
-  group: Optional[str] = "none"
+  group: Optional[str] = ""
 
 class GroupedItemsModel(BaseModel):
   group: str = 'default'
@@ -31,6 +32,8 @@ class ScoreResponseModel(BaseModel):
   #grouped: Optional[List[GroupedItemsModel]]
   dimension: int
   computeInProgress: bool
+  started: datetime
+  ended: datetime
 
 class ScoresResultsModel(BaseModel):
   query: ScoreQueryModel
