@@ -108,35 +108,40 @@ test_weights_timestamp_3 = datetime.datetime(2021, 9, 10, 13, 26, 17, 91000).iso
 test_weights = {
   'weight_1_1' : {
     'id' : "3E144A19-496D-43CA-9FDD-4F2F56E7BF57",
-    'term' : 'information',
+    #'term' : 'information',
+    'term' : 'inform',
     'itemId' : '24CC73BD-3A88-4AD7-B9B4-5C01AEC2456E',
     'timestamp' : test_weights_timestamp_1,
     'value' : 0.11
   },
   'weight_1_2' : {
     'id' : "1BFDBDAC-ECA6-44BB-AC0D-73D512978D9E",
-    'term' : 'information',
+    #'term' : 'information',
+    'term' : 'inform',
     'itemId' : '37BBB678-4E40-43AC-998D-454E667AEDBF',
     'timestamp' : test_weights_timestamp_1,
     'value' : 0.12
   },
   'weight_1_3' : {
     'id' : "2234CD79-8CD9-4809-9354-81A70DCD7466",
-    'term' : 'information',
+    #'term' : 'information',
+    'term' : 'inform',
     'itemId' : 'F2FC84A3-9A0A-48A9-87EF-07C752C8E5B4',
     'timestamp' : test_weights_timestamp_1,
     'value' : 0.13
   },
   'weight_1_4' : {
     'id' : "2260E18F-8CA8-4414-94A3-986A42B7E38C",
-    'term' : 'information',
+    #'term' : 'information',
+    'term' : 'inform',
     'itemId' : '4D983232-8F13-4AD0-9933-51348379497D',
     'timestamp' : test_weights_timestamp_1,
     'value' : 0.14
   },
   'weight_1_5' : {
     'id' : "BB6DB517-9392-4500-BDC5-3B3C0314F607",
-    'term' : 'information',
+    #'term' : 'information',
+    'term' : 'inform',
     'itemId' : 'A08C952D-4888-424F-B115-B5BCAC821B67',
     'timestamp' : test_weights_timestamp_1,
     'value' : 0.15
@@ -157,14 +162,16 @@ test_weights = {
   },
   'weight_3_1' : {
     'id' : "4F9319CB-C5D9-49B5-8707-57DFC445AF35",
-    'term' : 'retrieval',
+    #'term' : 'retrieval',
+    'term' : 'retriev',
     'itemId' : '24CC73BD-3A88-4AD7-B9B4-5C01AEC2456E',
     'timestamp' : test_weights_timestamp_3,
     'value' : 0.31
   },
   'weight_3_2' : {
     'id' : "F7019D62-CEC7-4CEC-8778-5D3DABD50649",
-    'term' : 'retrieval',
+    #'term' : 'retrieval',
+    'term' : 'retriev',
     'itemId' : '37BBB678-4E40-43AC-998D-454E667AEDBF',
     'timestamp' : test_weights_timestamp_3,
     'value' : 0.32
@@ -246,3 +253,22 @@ test_scores = {
     'computeInProgress' : False
   }
 }
+
+test_scores_computation = [
+  {
+    'itemId' : '37bbb678-4e40-43ac-998d-454e667aedbf',
+    'score' : 0.910366
+  },
+  {
+    'itemId' : '24cc73bd-3a88-4ad7-b9b4-5c01aec2456e',
+    'score' : 0.902861
+  },
+  {
+    'itemId' : '4d983232-8f13-4ad0-9933-51348379497d',
+    'score' : 0.707107
+  },
+  {
+    'itemId' : 'a08c952d-4888-424f-b115-b5bcac821b67',
+    'score' : 0.707107
+  }
+]

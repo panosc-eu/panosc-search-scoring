@@ -59,7 +59,7 @@ def convertWord2Number(inword):
   except:
       try:
           # tries to convert floats
-          outword = num2words.num2words(fload(inword))
+          outword = num2words.num2words(float(inword))
       except:
           # input word is not a number, or at least we assume so
           outword = inword

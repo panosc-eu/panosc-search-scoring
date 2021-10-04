@@ -6,7 +6,7 @@ from uuid import UUID
 # score request model. Body of the post request
 class ScoreRequestModel(BaseModel):
   query: str
-  itemIds: Optional[List[UUID]] = []
+  itemIds: Optional[List[str]] = []
   group: Optional[str] = ""
   limit: Optional[int] = -1
 
