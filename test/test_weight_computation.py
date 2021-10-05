@@ -218,7 +218,7 @@ class TestWeightsComputation(pss_test_base):
     # first number of elements
     assert len(wc._items) == len(self._wc_group_items)
     # check items id
-    wc_items_ids = pd.unique(wc._items['id'])
+    wc_items_ids = pd.unique(wc._items['itemId'])
     assert sorted(wc_items_ids) == sorted(self._wc_group_items_ids)
     # check status
     db_status = await self._wc_status_collection.find_one()

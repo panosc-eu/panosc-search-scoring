@@ -39,11 +39,11 @@ class TestScoresComputation(pss_test_base):
   _sc_test_data = None
   _sc_score_request_dict = None
   _sc_score_request_model = None
-  #_wc_config = None
-  #_wc_database = None
-  #_wc_items_collection = None
-  #_wc_status_collection = None
-  #_wc_weights_collection = None 
+  _sc_config = None
+  _sc_database = None
+  #_sc_items_collection = None
+  #_sc_status_collection = None
+  _sc_weights_collection = None 
   #_wc_groups_list = None
   #_wc_selected_group = None
   #_wc_group_items = None
@@ -85,13 +85,13 @@ class TestScoresComputation(pss_test_base):
     self.sc_score_request_model = ScoreRequestModel(**self._sc_score_request_dict)
 
     # instantiate config class
-    #self._wc_config = Config()
+    self._sc_config = Config()
     # instantiate database and collections
-    #db_client = AsyncIOMotorClient(self._wc_config.mongodb_url)
-    #self._wc_database = db_client[self._wc_config.database]
+    db_client = AsyncIOMotorClient(self._sc_config.mongodb_url)
+    self._sc_database = db_client[self._sc_config.database]
     #self._wc_items_collection = self._wc_database[itemsRouter.endpointRoute]
     #self._wc_status_collection = self._wc_database[computeRouter.endpointRoute]
-    #self._wc_weights_collection = self._wc_database[weightsRouter.endpointRoute]
+    self._sc_weights_collection = self._sc_database[weightsRouter.endpointRoute]
     # obtains list of groups from test data
     #self._wc_groups_list = list(set([
       #item['group'] if 'group' in item.keys() else 'default'
@@ -123,13 +123,13 @@ class TestScoresComputation(pss_test_base):
     # instantiate class
     sc = SC(
       self._sc_score_request_dict,
-      self._db_database, 
-      self._db_collection
+      self._sc_database, 
+      self._sc_weights_collection
     )
     # test properties
     assert sc._request == self._sc_score_request_dict
-    assert sc._db == self._db_database
-    assert sc._weights_coll == self._db_collection 
+    assert sc._db == self._sc_database
+    assert sc._weights_coll == self._sc_weights_collection 
 
 
   # extract terms from query
@@ -141,8 +141,8 @@ class TestScoresComputation(pss_test_base):
     # instantiate class
     sc = SC(
       self._sc_score_request_dict,
-      self._db_database, 
-      self._db_collection
+      self._sc_database, 
+      self._sc_weights_collection
     )
     # extract query terms
     print(sc)
@@ -161,8 +161,8 @@ class TestScoresComputation(pss_test_base):
     # instantiate class
     sc = SC(
       self._sc_score_request_dict,
-      self._db_database, 
-      self._db_collection
+      self._sc_database, 
+      self._sc_weights_collection
     )
     # extract query terms
     await sc._extract_query_terms()
@@ -182,8 +182,8 @@ class TestScoresComputation(pss_test_base):
     # instantiate class
     sc = SC(
       self._sc_score_request_dict,
-      self._db_database, 
-      self._db_collection
+      self._sc_database, 
+      self._sc_weights_collection
     )
     # prepare for computing score
     await sc._extract_query_terms()
@@ -197,8 +197,9 @@ class TestScoresComputation(pss_test_base):
     # check that we have the correct term ids
     assert list(sc._df_scores.index).sort() == self._sc_items_ids.sort()
     # check the individual scores
+    sc_df_scores = sc._df_scores.reset_index().set_index('itemId')
     for item in test_data.test_scores_computation:
-      assert round(sc._df_scores.loc[item['itemId'],'score'],6) == item['score']
+      assert round(sc_df_scores.loc[item['itemId'],'score'],6) == item['score']
 
 
 
@@ -211,8 +212,8 @@ class TestScoresComputation(pss_test_base):
     # instantiate class
     sc = await SC.runWorkflow(
       self._sc_score_request_dict,
-      self._db_database, 
-      self._db_collection
+      self._sc_database, 
+      self._sc_weights_collection
     )
     # query terms
     print(sc)
@@ -223,7 +224,11 @@ class TestScoresComputation(pss_test_base):
     sc_scores_length = sc.getScoresLength()
     assert sc_scores_length == len(self._sc_items_ids)
     # scores
-    sc_scores = sc.getScores()
+    sc_scores = {
+      item['itemId'] : item['score']
+      for item 
+      in sc.getScores()
+    }
     assert list(sc_scores.keys()).sort() == self._sc_items_ids.sort()
     for item in test_data.test_scores_computation:
       assert round(sc_scores[item['itemId']],6) == item['score']

@@ -12,7 +12,7 @@ class ScoreRequestModel(BaseModel):
 
 # scored item model
 class ScoredItemModel(BaseModel):
-  id: str
+  itemId: str
   score: float = 0.0
   group: Optional[str] = ""
 

@@ -147,7 +147,7 @@ class WC():
       list_cursor = await self._items_coll.find({"group" : self._group}).to_list(length=None)
 
     # save them in a dataframe
-    self._items = pd.DataFrame(list_cursor).rename(columns={'_id':'id'})
+    self._items = pd.DataFrame(list_cursor).rename(columns={'_id':'itemId'})
 
     # update status in database
     await self._updateStatus(0.20,"{} items loaded".format(len(self._items)))
@@ -158,11 +158,13 @@ class WC():
     """
     Extract terms from items
     """
+    print("weight_computation:extract")
     # update status in database
     await self._updateStatus(0.30,"Extracting terms")
 
     # combine meaningful fields for each item and extract terms
     self._items['terms'] = self._items.apply(pit.preprocessItemText,axis=1)
+    #print(self._items['terms'])
 
     # update status in database
     await self._updateStatus(0.40,"Terms extracted")
@@ -194,20 +196,21 @@ class WC():
     timestamp = getCurrentTimestamp()
 
     # stack data frame
+    self._weights.to_pickle('test_data_weights_raw_{}.pkl'.format(self._group))
     stacked_weights = self._weights.stack() \
       .reset_index() \
       .rename(
         columns={
-          'id' : 'itemId',
           'level_1':'term',
           0:'value'})
+    stacked_weights.to_pickle('test_data_weights_db_{}.pkl'.format(self._group))
     # convert to a triplet item, term, value
     new_weights = [
       InsertOne(
         {
           '_id' : _get_uuid(),
           'term' : weight['term'],
-          'itemId' : weight['itemId'],
+          'itemId' : str(weight['itemId']),
           'itemGroup' : self._group,
           'timestamp' : timestamp,
           'value' : weight['value']

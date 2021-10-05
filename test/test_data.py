@@ -111,6 +111,7 @@ test_weights = {
     #'term' : 'information',
     'term' : 'inform',
     'itemId' : '24CC73BD-3A88-4AD7-B9B4-5C01AEC2456E',
+    'itemGroup': "group_1",
     'timestamp' : test_weights_timestamp_1,
     'value' : 0.11
   },
@@ -119,6 +120,7 @@ test_weights = {
     #'term' : 'information',
     'term' : 'inform',
     'itemId' : '37BBB678-4E40-43AC-998D-454E667AEDBF',
+    'itemGroup': "group_1",
     'timestamp' : test_weights_timestamp_1,
     'value' : 0.12
   },
@@ -127,6 +129,7 @@ test_weights = {
     #'term' : 'information',
     'term' : 'inform',
     'itemId' : 'F2FC84A3-9A0A-48A9-87EF-07C752C8E5B4',
+    'itemGroup': "group_1",
     'timestamp' : test_weights_timestamp_1,
     'value' : 0.13
   },
@@ -135,6 +138,7 @@ test_weights = {
     #'term' : 'information',
     'term' : 'inform',
     'itemId' : '4D983232-8F13-4AD0-9933-51348379497D',
+    'itemGroup': "default",
     'timestamp' : test_weights_timestamp_1,
     'value' : 0.14
   },
@@ -143,6 +147,7 @@ test_weights = {
     #'term' : 'information',
     'term' : 'inform',
     'itemId' : 'A08C952D-4888-424F-B115-B5BCAC821B67',
+    'itemGroup': "group_1",
     'timestamp' : test_weights_timestamp_1,
     'value' : 0.15
   },
@@ -150,6 +155,7 @@ test_weights = {
     'id' : "4C75587E-B620-4930-88E6-E0F75E591E40",
     'term' : 'metadata',
     'itemId' : '37BBB678-4E40-43AC-998D-454E667AEDBF',
+    'itemGroup': "group_1",
     'timestamp' : test_weights_timestamp_2,
     'value' : 0.21
   },
@@ -157,6 +163,7 @@ test_weights = {
     'id' : "F2F4E7E0-A080-49C4-B481-F0F536BB8D59",
     'term' : 'metadata',
     'itemId' : '4D983232-8F13-4AD0-9933-51348379497D',
+    'itemGroup': "default",
     'timestamp' : test_weights_timestamp_2,
     'value' : 0.22
   },
@@ -165,6 +172,7 @@ test_weights = {
     #'term' : 'retrieval',
     'term' : 'retriev',
     'itemId' : '24CC73BD-3A88-4AD7-B9B4-5C01AEC2456E',
+    'itemGroup': "group_1",
     'timestamp' : test_weights_timestamp_3,
     'value' : 0.31
   },
@@ -173,6 +181,7 @@ test_weights = {
     #'term' : 'retrieval',
     'term' : 'retriev',
     'itemId' : '37BBB678-4E40-43AC-998D-454E667AEDBF',
+    'itemGroup': "group_1",
     'timestamp' : test_weights_timestamp_3,
     'value' : 0.32
   },
@@ -200,52 +209,52 @@ test_scores = {
     ],
     'scores' : [
       {
-        'id' : '7660171a-3421-461d-b2c7-1d9c575dcf1f',
+        'itemId' : '7660171a-3421-461d-b2c7-1d9c575dcf1f',
         'score' : 0.10,
         'group' : 'group_1'
       },
       {
-        'id' : '3136f700-572e-4b5c-98ac-1b7bf21be75a',
+        'itemId' : '3136f700-572e-4b5c-98ac-1b7bf21be75a',
         'score' : 0.12,
         'group' : 'group_2'
       },
       {
-        'id' : 'f7bf042e-e249-48b5-8f03-27de390f20f8',
+        'itemId' : 'f7bf042e-e249-48b5-8f03-27de390f20f8',
         'score' : 0.14,
         'group' : 'group_1'
       },
       {
-        'id' : '4e602cd8-eacd-447f-a087-1000021f55b0',
+        'itemId' : '4e602cd8-eacd-447f-a087-1000021f55b0',
         'score' : 0.16,
         'group' : 'group_2'
       },
       {
-        'id' : '53fcf368-9b59-48f4-8a56-3166d4d89414',
+        'itemId' : '53fcf368-9b59-48f4-8a56-3166d4d89414',
         'score' : 0.18,
         'group' : 'group_1'
       },
       {
-        'id' : '03c97039-d2bc-4e02-b70e-0ae9e17b1821',
+        'itemId' : '03c97039-d2bc-4e02-b70e-0ae9e17b1821',
         'score' : 0.20,
         'group' : 'group_2'
       },
       {
-        'id' : '6f51db9c-56e1-4714-a2d2-ed1b5426ee95',
+        'itemId' : '6f51db9c-56e1-4714-a2d2-ed1b5426ee95',
         'score' : 0.22,
         'group' : 'group_1'
       },
       {
-        'id' : '2178af78-1ece-4f40-9c3c-4e5e3eabe2a0',
+        'itemId' : '2178af78-1ece-4f40-9c3c-4e5e3eabe2a0',
         'score' : 0.24,
         'group' : 'group_2'
       },
       {
-        'id' : 'ca6634ab-0dec-41d8-8a09-8a3f4db8b40b',
+        'itemId' : 'ca6634ab-0dec-41d8-8a09-8a3f4db8b40b',
         'score' : 0.26,
         'group' : 'group_1'
       },
       {
-        'id' : '07a6cda2-d50a-4775-bcc1-b9517473c1c2',
+        'itemId' : '07a6cda2-d50a-4775-bcc1-b9517473c1c2',
         'score' : 0.28,
         'group' : 'group_2'
       }

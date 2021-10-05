@@ -32,11 +32,19 @@ class SC:
 
 
   async def _extract_query_terms(self):
+    """
+    """
+    #print('score_computation._extract_query_terms')
     # extract search terms from query
     self._query_terms = pit.preprocessItemText(self._request['query'])
+    #print(self._query_terms)
 
   
   async def _load_weights(self):
+    """
+    """
+    #print('score_computation._load_weights')
+    
     # load weights that refer to the query terms and the items passed
     # if not item ids have been passed, we use all items
     # same with the group
@@ -47,37 +55,45 @@ class SC:
     }
 
     # check if we have the list of items id
-    if self._request['itemIds']:
+    if "itemIds" in self._request.keys() and self._request['itemIds']:
       self._db_query['itemId'] = { '$in' : self._request['itemIds'] }
 
-    if self._request['group']:
+    if "group" in self._request.keys() and self._request['group']:
       self._db_query['itemGroup'] = self._request['group']
 
     # query ready
-    print(self._db_query)
-    print(self._weights_coll.name)
-    list_cursor = self._weights_coll.find(
+    #print('--- query')
+    #print(self._db_query)
+    #print(self._weights_coll.name)
+    list_cursor = await self._weights_coll.find(
       self._db_query,
       { 
         '_id' : 0, 
-        'timestamp': 0,
-        'itemGroup' : 0
+        'timestamp': 0
       }
-    )
-
+    ).to_list(None)
+    #print(list_cursor)
     weights = [item for item in list_cursor]
-    print(weights)
+    #print(weights)
 
-    # save them in a dataframe
+    # save them in a dataframe.
+    # it also pivot the dataframe so terms are in columns and rows are the items
+    #print('--- prep weights')
     self._df_weights = pd.DataFrame(weights) \
-      .set_index(['itemId','term']) \
+      .set_index(['itemGroup','itemId','term']) \
       .unstack(level=-1) \
-      .reset_index() 
-    self._df_weights.columns = self._df_weights.columns.get_level_values(1)
+      .reset_index()
+    #print(self._df_weights)
+    # adjust columns names
+    columns = list(self._df_weights.columns.get_level_values(1))
+    columns[0] = 'itemGroup'
+    columns[1] = 'itemId'
+    self._df_weights.columns = columns
+    # re-set index and fill table with zeros
     self._df_weights = self._df_weights \
-      .rename(columns={'':'termId'}) \
-      .set_index('termId') \
+      .set_index(['itemGroup','itemId']) \
       .fillna(0)
+    #print(self._df_weights)
 
     # add missing query terms
     self._df_weights[
@@ -91,10 +107,14 @@ class SC:
 
     # order columns in alphabetical order
     self._df_weights.sort_index(axis=1,inplace=True)
+    #print(self._df_weights)
 
 
   async def _compute_scores(self):
-    # compute scores using cosine similarity
+    """
+    compute scores using cosine similarity
+    """
+    #print('score_computation._compute_scores')
 
     # prepare data frame with query terms. All weights are set to 1
     self._df_query = pd.DataFrame(
@@ -102,6 +122,7 @@ class SC:
       columns=self._query_terms)
     # sort columns alphabetically
     self._df_query.sort_index(axis=1,inplace=True)
+    #print(self._df_query)
 
     # compute scores
     self._df_scores = pd.DataFrame(
@@ -111,8 +132,10 @@ class SC:
     ).sort_values(by="score",ascending=False)
 
     # checks if we need to trim the list
-    if self._request['limit'] > 0:
+    if 'limit' in self._request.keys() and self._request['limit'] > 0:
       self._df_scores = self._df_scores.head(self._request['limit'])
+    #print(self._df_scores)
+    #print(self._df_scores.reset_index().head().to_dict(orient='records'))
 
 
   def getQueryTerms(self):
@@ -120,11 +143,15 @@ class SC:
 
   
   def getScores(self):
-    return {
-      k: v['score']
-      for k, v
-      in self._df_scores.to_dict(orient='index').items()
-    }
+    return [
+      {
+        'group' : record['itemGroup'],
+        'itemId': record['itemId'],
+        'score' : record['score']
+      }
+      for record
+      in self._df_scores.reset_index().to_dict(orient='records')
+    ]
 
 
   def getScoresLength(self):
@@ -147,7 +174,7 @@ class SC:
       db,
       weights_coll
   ): 
-
+    #print('score_computation.runWorkflow')
     # initialize class
     sc = SC(
       request,
@@ -163,6 +190,7 @@ class SC:
     await sc._load_weights()
 
     # compute scores
+    #sc._df_scores = pd.DataFrame()
     await sc._compute_scores()
     sc._ts_ended = getCurrentTimestamp()
 

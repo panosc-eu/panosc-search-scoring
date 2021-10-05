@@ -22,7 +22,7 @@ def TF(row,terms_column='terms'):
   # build output and return
   return {
     **{
-      'id': row['id'],
+      'itemId': row['itemId'],
       'length': nwords
     },
     **{
@@ -48,7 +48,7 @@ def IDF(df):
   return {
       column: math.log10(1+nDocs/len(df[df[column]!=0]))
       for column 
-      in df.drop(columns=['length','id']).columns.to_list()
+      in df.drop(columns=['length','itemId']).columns.to_list()
   }
 
 
@@ -56,6 +56,7 @@ def IDF(df):
 def TF_IDuF(dfItems,terms_column='terms'):
   """
   """
+  print('tf_iduf.TF_IDuF')
   
   # compute TF for this dataset
   dfTF = pd.DataFrame(
@@ -67,12 +68,14 @@ def TF_IDuF(dfItems,terms_column='terms'):
     .to_list()
   ) \
   .fillna(0)
+  print(dfTF)
   
   # compute IDF for this dataset
   dfIDF = pd.DataFrame(
     IDF(dfTF),
     index=[0]
   )
+  print(dfIDF)
   
   # multiply each row of dfTF by the matching word IDF
   dfOutput = dfTF.mul(
@@ -80,19 +83,22 @@ def TF_IDuF(dfItems,terms_column='terms'):
       dfIDF.index.repeat(len(dfTF))
     ] \
     .set_index(dfTF.index)
-  ) \
-  .drop(columns=['length','id'])
+  )
+  print(dfOutput)
+  dfOutput = dfOutput.drop(columns=['length','itemId'])
+  print(dfOutput)
 
   # add provider column and reset index
   dfOutput = pd.merge(
     dfOutput,
-    dfTF[['id']],
+    dfTF[['itemId']],
     left_index=True,
     right_index=True
   )
+  print(dfOutput)
 
   # set id as row index
-  dfOutput.set_index('id',inplace=True)
+  dfOutput.set_index('itemId',inplace=True)
   
   return dfOutput
 

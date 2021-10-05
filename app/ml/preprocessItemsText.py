@@ -13,7 +13,10 @@ import json
 
 
 # Load the english stop words from nltk
-stop_words = set(stopwords.words('english'))
+stop_words_t1 = stopwords.words('english')
+#stop_words_t1.append('id')
+stop_words = set(stop_words_t1)
+del stop_words_t1
 
 # punctuation symbols that we want to remove from the text
 punctuation_symbols = "!\"#$%&()*+-,./:;<=>;?@[\]^_`{|}~\n"
