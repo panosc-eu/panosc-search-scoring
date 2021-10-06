@@ -11,3 +11,12 @@ def getCurrentIsoTimestamp(ts = None):
   ts = getCurrentTimestamp() if ts is None else ts
   return ts.isoformat(timespec='microseconds')
 
+def debug(config,message):
+  """
+  print debugging message
+  """
+  try:
+    if config.debug == True:
+      print(message)
+  except:
+    pass

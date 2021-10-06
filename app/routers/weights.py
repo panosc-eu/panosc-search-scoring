@@ -124,9 +124,9 @@ async def count_weights(
 
   # retrieve results
   count = await db[endpointRoute].aggregate(pipeline).to_list(length=None)
-
+  
   return {
-    "count": count[0]['count']
+    "count": count[0]["count"] if len(count)>0 else 0
   }
 
 

@@ -11,6 +11,7 @@ from fastapi.encoders import jsonable_encoder
 
 from ..models.terms import TermResponseModel, TermsCountResponseModel
 from .items import endpointRoute as itemCollection
+from ..common.utils import debug
 
 # terms endpoint 
 endpointRoute = "terms"
@@ -117,7 +118,7 @@ async def get_terms(
     group)
 
   terms = await db[databaseCollection].aggregate(pipeline).to_list(length=None)
-  print(terms)
+  debug(config,terms)
   return jsonable_encoder(terms, by_alias=False)
 
     
@@ -142,11 +143,11 @@ async def count_weights(
     group,
     True
   )
-  print(pipeline)
+  debug(config,pipeline)
 
   # retrieve results
   count = await db[databaseCollection].aggregate(pipeline).to_list(length=None)
-  print(count)
+  debug(config,count)
   return {
     "count": count[0]['count']
   }

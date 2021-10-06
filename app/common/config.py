@@ -24,7 +24,8 @@ class Config:
     "application" : "PSS",
     "description" : "PaNOSC search scoring",
     "version" : "v0-alpha",
-    "waitToStartCompute" : 5
+    "waitToStartCompute" : 5,
+    "debug" : False
   }
 
   # list of environmental variables
@@ -35,7 +36,8 @@ class Config:
     "application" : "str", 
     "description" : "str", 
     "version" : "str",
-    "waitToStartCompute" : "int"
+    "waitToStartCompute" : "int",
+    "debug" : "bool"
   }
 
 
@@ -59,6 +61,8 @@ class Config:
       if env_value is not None:
         if self.env_variables[var] == 'int':
           self.config[var] = int(env_value)
+        elif self.env_variables[var] == 'bool':
+          self.config[var] = bool(env_value)
         else:
           self.config[var] = env_value
 

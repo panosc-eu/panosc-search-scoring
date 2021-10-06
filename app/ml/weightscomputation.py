@@ -12,7 +12,7 @@ from uuid import uuid4
 from app.models.weights import WeightModel
 import app.ml.preprocessItemsText as pit
 import app.ml.tf_iduf as tf_iduf
-from ..common.utils import getCurrentTimestamp
+from ..common.utils import getCurrentTimestamp,debug
 
 
 _get_uuid = lambda: str(uuid4())
@@ -158,7 +158,7 @@ class WC():
     """
     Extract terms from items
     """
-    print("weight_computation:extract")
+    debug(self._config,"weight_computation:extract")
     # update status in database
     await self._updateStatus(0.30,"Extracting terms")
 

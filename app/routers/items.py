@@ -21,6 +21,7 @@ from ..models.items import \
   ItemPutResponseModel, \
   ItemPatchResponseModel, \
   ItemDeleteResponseModel
+from ..common.utils import debug
 
 # main tag, route and database collection for items
 endpointRoute = 'items'
@@ -84,7 +85,7 @@ async def count_items(req: Request):
   db = req.app.state.db_database
   
   # retrieve results
-  print(endpointRoute)
+  debug(config,endpointRoute)
   count = await db[endpointRoute].count_documents({})
   return {
     "count": count
@@ -112,7 +113,7 @@ async def get_item(
   
   item_id = req.path_params['item_id']
 
-  print("get item : " + item_id)
+  debug(config,"get item : " + item_id)
   # retrieve results
   item = await db[endpointRoute].find_one({'_id':item_id})
   if not item:
@@ -140,7 +141,7 @@ async def new_items(req: Request, inputItems = Body(...)): #List[ItemCreateModel
   config = req.app.state.config
   db = req.app.state.db_database
   
-  print(inputItems)
+  debug(config,inputItems)
   # check if we need to insert one or manyß
   writtenItems = 0
   if type(inputItems) is dict:
@@ -178,7 +179,7 @@ async def delete_item(
 
   item_id = req.path_params['item_id']
 
-  print('Delete : ' + item_id)
+  debug(config,'Delete : ' + item_id)
   # delete results
   res = await db[endpointRoute].delete_many({'_id':item_id})
   # fix id issue

@@ -6,11 +6,14 @@
 from fastapi import APIRouter, Request, Body
 from fastapi.encoders import jsonable_encoder
 
+from app import common
+
 from ..models.score import ScoreRequestModel, ScoreResponseModel, ScoresResultsModel
 from .weights import endpointRoute as weightsCollection
 from .compute import endpointRoute as computeCollection
 
 from ..ml.scorescomputation import SC
+from ..common.utils import debug
 
 
 # main tag, route and database collection for compute
@@ -37,12 +40,12 @@ async def get_scores(req: Request, scoreRequest = Body(...)):
   config = req.app.state.config
   db = req.app.state.db_database
 
-  print(ScoreRequestModel(**scoreRequest))
+  debug(config,ScoreRequestModel(**scoreRequest))
 
-  print(type(SC))
+  debug(config,type(SC))
   # compute the scores
   oSC = await SC.runWorkflow(scoreRequest,db,db[weightsCollection])
-  print(oSC)
+  debug(config,oSC)
   
   # check weight computation status
   computeStatus = await db[computeCollection].find({}).to_list(None)
