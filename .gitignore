@@ -146,4 +146,7 @@ original_notebook_scripts/
 notebooks/credentials.json
 notebooks/*-wip.ipynb
 TO-BE-DELETED/*
+test_data*.pkl
+test/test_data_weights.json
+
 

@@ -122,6 +122,7 @@ class TestScoresComputation(pss_test_base):
     self._initialize_environment_for_class_test()
     # instantiate class
     sc = SC(
+      self._sc_config,
       self._sc_score_request_dict,
       self._sc_database, 
       self._sc_weights_collection
@@ -140,6 +141,7 @@ class TestScoresComputation(pss_test_base):
     self._initialize_environment_for_class_test()
     # instantiate class
     sc = SC(
+      self._sc_config,
       self._sc_score_request_dict,
       self._sc_database, 
       self._sc_weights_collection
@@ -160,6 +162,7 @@ class TestScoresComputation(pss_test_base):
     self._initialize_environment_for_class_test()
     # instantiate class
     sc = SC(
+      self._sc_config,
       self._sc_score_request_dict,
       self._sc_database, 
       self._sc_weights_collection
@@ -181,6 +184,7 @@ class TestScoresComputation(pss_test_base):
     self._initialize_environment_for_class_test()
     # instantiate class
     sc = SC(
+      self._sc_config,
       self._sc_score_request_dict,
       self._sc_database, 
       self._sc_weights_collection
@@ -211,6 +215,7 @@ class TestScoresComputation(pss_test_base):
     self._initialize_environment_for_class_test()
     # instantiate class
     sc = await SC.runWorkflow(
+      self._sc_config,
       self._sc_score_request_dict,
       self._sc_database, 
       self._sc_weights_collection

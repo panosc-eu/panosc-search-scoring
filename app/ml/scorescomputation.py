@@ -1,3 +1,4 @@
+from pydantic import utils
 from app.common.utils import getCurrentTimestamp
 import pandas as pd
 import numpy as np
@@ -6,10 +7,12 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from ..models.score import ScoreRequestModel,ScoresResultsModel,ScoredItemModel
 import app.ml.preprocessItemsText as pit
+from ..common.utils import debug
 
 
 class SC:
 
+  _config = None
   _request = None
   _db = None
   _weights_coll = None
@@ -25,7 +28,8 @@ class SC:
   _ts_ended = None
 
 
-  def __init__(self,request,db,weights_coll):
+  def __init__(self,config,request,db,weights_coll):
+    self._config = config
     self._request = request
     self._db = db
     self._weights_coll = weights_coll
@@ -34,16 +38,16 @@ class SC:
   async def _extract_query_terms(self):
     """
     """
-    #print('score_computation._extract_query_terms')
+    debug(self._config,'score_computation._extract_query_terms')
     # extract search terms from query
     self._query_terms = pit.preprocessItemText(self._request['query'])
-    #print(self._query_terms)
+    debug(self._config,self._query_terms)
 
   
   async def _load_weights(self):
     """
     """
-    #print('score_computation._load_weights')
+    debug(self._config,'score_computation._load_weights')
     
     # load weights that refer to the query terms and the items passed
     # if not item ids have been passed, we use all items
@@ -62,9 +66,9 @@ class SC:
       self._db_query['itemGroup'] = self._request['group']
 
     # query ready
-    #print('--- query')
-    #print(self._db_query)
-    #print(self._weights_coll.name)
+    debug(self._config,'--- query')
+    debug(self._config,self._db_query)
+    debug(self._config,self._weights_coll.name)
     list_cursor = await self._weights_coll.find(
       self._db_query,
       { 
@@ -72,18 +76,18 @@ class SC:
         'timestamp': 0
       }
     ).to_list(None)
-    #print(list_cursor)
+    debug(self._config,list_cursor)
     weights = [item for item in list_cursor]
-    #print(weights)
+    debug(self._config,weights)
 
     # save them in a dataframe.
     # it also pivot the dataframe so terms are in columns and rows are the items
-    #print('--- prep weights')
+    debug(self._config,'--- prep weights')
     self._df_weights = pd.DataFrame(weights) \
       .set_index(['itemGroup','itemId','term']) \
       .unstack(level=-1) \
       .reset_index()
-    #print(self._df_weights)
+    debug(self._config,self._df_weights)
     # adjust columns names
     columns = list(self._df_weights.columns.get_level_values(1))
     columns[0] = 'itemGroup'
@@ -93,7 +97,7 @@ class SC:
     self._df_weights = self._df_weights \
       .set_index(['itemGroup','itemId']) \
       .fillna(0)
-    #print(self._df_weights)
+    debug(self._config,self._df_weights)
 
     # add missing query terms
     self._df_weights[
@@ -107,14 +111,14 @@ class SC:
 
     # order columns in alphabetical order
     self._df_weights.sort_index(axis=1,inplace=True)
-    #print(self._df_weights)
+    debug(self._config,self._df_weights)
 
 
   async def _compute_scores(self):
     """
     compute scores using cosine similarity
     """
-    #print('score_computation._compute_scores')
+    debug(self._config,'score_computation._compute_scores')
 
     # prepare data frame with query terms. All weights are set to 1
     self._df_query = pd.DataFrame(
@@ -122,7 +126,7 @@ class SC:
       columns=self._query_terms)
     # sort columns alphabetically
     self._df_query.sort_index(axis=1,inplace=True)
-    #print(self._df_query)
+    debug(self._config,self._df_query)
 
     # compute scores
     self._df_scores = pd.DataFrame(
@@ -134,8 +138,8 @@ class SC:
     # checks if we need to trim the list
     if 'limit' in self._request.keys() and self._request['limit'] > 0:
       self._df_scores = self._df_scores.head(self._request['limit'])
-    #print(self._df_scores)
-    #print(self._df_scores.reset_index().head().to_dict(orient='records'))
+    debug(self._config,self._df_scores)
+    debug(self._config,self._df_scores.reset_index().head().to_dict(orient='records'))
 
 
   def getQueryTerms(self):
@@ -170,13 +174,15 @@ class SC:
 
   @staticmethod
   async def runWorkflow(
+      config,
       request: ScoreRequestModel,
       db,
       weights_coll
   ): 
-    #print('score_computation.runWorkflow')
+    debug(config,'score_computation.runWorkflow')
     # initialize class
     sc = SC(
+      config,
       request,
       db,
       weights_coll

@@ -44,7 +44,7 @@ async def get_scores(req: Request, scoreRequest = Body(...)):
 
   debug(config,type(SC))
   # compute the scores
-  oSC = await SC.runWorkflow(scoreRequest,db,db[weightsCollection])
+  oSC = await SC.runWorkflow(config,scoreRequest,db,db[weightsCollection])
   debug(config,oSC)
   
   # check weight computation status
