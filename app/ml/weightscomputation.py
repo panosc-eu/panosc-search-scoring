@@ -164,7 +164,7 @@ class WC():
 
     # combine meaningful fields for each item and extract terms
     self._items['terms'] = self._items.apply(pit.preprocessItemText,axis=1)
-    #print(self._items['terms'])
+    debug(self._config,self._items['terms'])
 
     # update status in database
     await self._updateStatus(0.40,"Terms extracted")
@@ -196,14 +196,14 @@ class WC():
     timestamp = getCurrentTimestamp()
 
     # stack data frame
-    self._weights.to_pickle('test_data_weights_raw_{}.pkl'.format(self._group))
+    #self._weights.to_pickle('test_data_weights_raw_{}.pkl'.format(self._group))
     stacked_weights = self._weights.stack() \
       .reset_index() \
       .rename(
         columns={
           'level_1':'term',
           0:'value'})
-    stacked_weights.to_pickle('test_data_weights_db_{}.pkl'.format(self._group))
+    #stacked_weights.to_pickle('test_data_weights_db_{}.pkl'.format(self._group))
     # convert to a triplet item, term, value
     new_weights = [
       InsertOne(
