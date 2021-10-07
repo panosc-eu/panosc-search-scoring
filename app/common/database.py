@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from functools import partial
 
 from .config import Config
+from .utils import debug
 
 #app_db_client: AsyncIOMotorClient = None
 #app_db_database: AsyncIOMotorDatabase = None
@@ -27,7 +28,7 @@ def db_connect_handler(app: FastAPI) -> Callable:
     #app_db_database = app_db_client[config.database]
     app.state.db_client = AsyncIOMotorClient(config.mongodb_url)
     app.state.db_database = app.state.db_client[config.database]
-    print(app.state.db_database)
+    debug(config,app.state.db_database)
 
   return partial(db_connect, app=app)
 
