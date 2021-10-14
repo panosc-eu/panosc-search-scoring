@@ -1,0 +1,23 @@
+version: "3.9"
+services:
+  pss-api:
+    image: ess/pss:v1.0
+    environment:
+      PSS_DEBUG: 0
+      PSS_MONGODB_URL: mongodb://pss-db:27017 
+      PSS_DATABASE: pss
+      PSS_PORT: 8000
+    depends_on:
+      - pss-db
+    ports:
+      - 8000:8000
+    networks:
+      - pss-internal
+  pss-db:
+    image: bitnami/mongodb:latest
+    networks:
+      - pss-internal
+#    ports:
+#      - 27017:27017
+networks:
+  pss-internal:

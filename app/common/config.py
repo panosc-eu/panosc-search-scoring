@@ -23,7 +23,7 @@ class Config:
     "port" : 8000,
     "application" : "PSS",
     "description" : "PaNOSC search scoring",
-    "version" : "v0-alpha",
+    "version" : "unknown",
     "waitToStartCompute" : 5,
     "debug" : False
   }
