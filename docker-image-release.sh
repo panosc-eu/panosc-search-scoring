@@ -8,15 +8,14 @@ echo ""
 #
 # check that we got two arguments in input
 if [ "$#" -ne 2 ] && [ "$#" -ne 3 ]; then
-    echo "Usage ${SCRIPT_NAME} <account> <env> (<commit>)"
+    echo "Usage ${SCRIPT_NAME} <account> (<tag>)"
     echo ""
     echo " prepare a docker image and push it to the dockerhub repo <account>/panosc-search-scoring"
     echo ""
     echo " arguments:"
     echo " - account = account on docker hub"
-    echo " - env     = dev(lopment) or prod(oduction) environment"
-    echo " - commit  = git commit we would like to use to create the image"
-    echo "             if not specified it uses the latest commit"
+    echo " - tag     = git tag we would like to use to create the image"
+    echo "             if not specified it uses the latest tag available on the main branch"
     echo ""
     exit 1
 fi
@@ -35,7 +34,7 @@ dockerRepo=${account}/panosc-search-scoring
 
 # retrieve latest git commit tag
 if [ "-${gitTag}-" == "--" ]; then 
-    gitTag=$(git rev-parse HEAD)
+    gitTag=$(git describe --tags --abbrev=0)
 fi
 
 
