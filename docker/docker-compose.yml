@@ -1,7 +1,7 @@
 version: "3.9"
 services:
   pss-api:
-    image: ess/pss:v1.0
+    image: nitrosx71/panosc-search-scoring:v1.0-alpha
     environment:
       PSS_DEBUG: 0
       PSS_MONGODB_URL: mongodb://pss-db:27017 
