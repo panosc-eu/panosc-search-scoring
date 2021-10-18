@@ -25,7 +25,8 @@ class Config:
     "description" : "PaNOSC search scoring",
     "version" : "unknown",
     "waitToStartCompute" : 5,
-    "debug" : False
+    "debug" : False,
+    "deployment" : "unknown"
   }
 
   # list of environmental variables
@@ -37,7 +38,8 @@ class Config:
     "description" : "str", 
     "version" : "str",
     "waitToStartCompute" : "int",
-    "debug" : "bool"
+    "debug" : "bool",
+    "deployment" : "str"
   }
 
 
@@ -67,7 +69,7 @@ class Config:
           self.config[var] = env_value
 
     # set root information
-    for info in ["application", "description", "version"]:
+    for info in ["application", "description", "version", "deployment"]:
       self.rootInfo[info] = self.config[info]
     self.rootInfo["started-time"] = utils.getCurrentIsoTimestamp(self.tsStarted)
     
