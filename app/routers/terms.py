@@ -122,7 +122,7 @@ async def get_terms(
   return jsonable_encoder(terms, by_alias=False)
 
     
-# Route GET:/weights/count
+# Route GET:/terms/count
 @router.get(
   "/count", 
   response_model=TermsCountResponseModel,
