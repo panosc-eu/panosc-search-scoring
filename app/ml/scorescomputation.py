@@ -9,6 +9,7 @@ from ..models.score import ScoreRequestModel,ScoresResultsModel,ScoredItemModel
 import app.ml.preprocessItemsText as pit
 from ..common.utils import debug
 
+QUERY_SINGLE_TERM_MAX_SCORE = 0.9
 
 class SC:
 
@@ -120,20 +121,37 @@ class SC:
     """
     debug(self._config,'score_computation._compute_scores')
 
-    # prepare data frame with query terms. All weights are set to 1
-    self._df_query = pd.DataFrame(
-      np.ones((1,len(self._query_terms))),
-      columns=self._query_terms)
-    # sort columns alphabetically
-    self._df_query.sort_index(axis=1,inplace=True)
-    debug(self._config,self._df_query)
+    # check how many terms are present in the query
+    if (len(self._query_terms) > 1):
+      # when we have more than one term in the query
+      # we can use the cosine similarity
 
-    # compute scores
-    self._df_scores = pd.DataFrame(
-      cosine_similarity(self._df_weights,self._df_query),
-      index=self._df_weights.index,
-      columns=["score"]
-    ).sort_values(by="score",ascending=False)
+      # prepare data frame with query terms. All weights are set to 1
+      self._df_query = pd.DataFrame(
+        np.ones((1,len(self._query_terms))),
+        columns=self._query_terms)
+      # sort columns alphabetically
+      self._df_query.sort_index(axis=1,inplace=True)
+      debug(self._config,self._df_query)
+
+      # compute scores
+      self._df_scores = pd.DataFrame(
+        cosine_similarity(self._df_weights,self._df_query),
+        index=self._df_weights.index,
+        columns=["score"]
+      ).sort_values(by="score",ascending=False)
+
+    else:
+      # when the query has only one term
+      # we cannot use the cosine similarity
+      # as score, we will pass back the weight of the term within the items
+      self._df_scores = self._df_weights.rename(
+        columns={
+          self._query_terms[0]: 'score'
+        }
+      ).sort_values(by="score",ascending=False)
+      self._df_scores = QUERY_SINGLE_TERM_MAX_SCORE*self._df_scores/self._df_scores.max()
+
 
     # checks if we need to trim the list
     if 'limit' in self._request.keys() and self._request['limit'] > 0:

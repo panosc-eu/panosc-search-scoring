@@ -25,6 +25,7 @@ from ..common.utils import debug
 
 # main tag, route and database collection for items
 endpointRoute = 'items'
+LIMIT_DEFAULT = 1000
 
 # instantiate the fastapi router object
 router = APIRouter(
@@ -39,7 +40,7 @@ router = APIRouter(
   status_code=200,
   response_model_by_alias=False
 )
-async def get_items(req: Request, limit: int = 1000, offset: int = 0):
+async def get_items(req: Request, limit: int = LIMIT_DEFAULT, offset: int = 0):
   # extract db and config from the app class
   config = req.app.state.config
   db = req.app.state.db_database
@@ -63,7 +64,7 @@ async def get_items(req: Request, limit: int = 1000, offset: int = 0):
     )
   pipeline.append(
     {
-      '$limit' : limit
+      '$limit' : limit if limit > 0 else LIMIT_DEFAULT
     }
   )
   # retrieve results
