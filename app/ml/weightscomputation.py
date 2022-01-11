@@ -1,7 +1,7 @@
 from app.models.compute import ComputeStatusModel
 from typing import Union
 from time import sleep
-import pandas as pd
+#import pandas as pd
 import numpy as np
 import json
 from pymongo import InsertOne
@@ -32,6 +32,8 @@ class WC():
   # dataframe with items to compute weights on
   _items = None
   _weights = None
+  _rows = None
+  _cols = None
 
   # logs of actions
   _logs = []
@@ -135,6 +137,11 @@ class WC():
     await self._updateStatus(0.10,"Loading items for group {}".format(self._group))
 
     # load all the items to be scored from the database
+    # and save them in standard python list.
+    # each item has the following fields
+    # - _id
+    # - group
+    # - fields
     if self._group == 'default':
       list_cursor = await self._items_coll.find(
         { "$or" : [
@@ -146,8 +153,7 @@ class WC():
     else:
       list_cursor = await self._items_coll.find({"group" : self._group}).to_list(length=None)
 
-    # save them in a dataframe
-    self._items = pd.DataFrame(list_cursor).rename(columns={'_id':'itemId'})
+    self._items = [item for item in list_cursor]
 
     # update status in database
     await self._updateStatus(0.20,"{} items loaded".format(len(self._items)))
@@ -163,8 +169,20 @@ class WC():
     await self._updateStatus(0.30,"Extracting terms")
 
     # combine meaningful fields for each item and extract terms
-    self._items['terms'] = self._items.apply(pit.preprocessItemText,axis=1)
-    debug(self._config,self._items['terms'])
+    # creates a new list of items with updated fields names
+    # - itemId
+    # - group
+    # - terms
+    self._items = [
+      {
+        'itemId' : item['_id'],
+        'group'  : item['group'], 
+        'terms'  : pit.preprocessItemText(item)
+      }
+      for item 
+      in self._items
+    ]
+    debug(self._config,self._items)
 
     # update status in database
     await self._updateStatus(0.40,"Terms extracted")
@@ -179,7 +197,7 @@ class WC():
     await self._updateStatus(0.50,"Computing weights")
 
     # computes weights for pair item,term
-    self._weights = tf_iduf.TF_IDuF(self._items)
+    (self._weights,self._weights_rows,self._weights_cols) = tf_iduf.TF_IDF(self._items)
 
     # update status in database
     await self._updateStatus(0.60,"Weights computed")
@@ -195,30 +213,23 @@ class WC():
 
     timestamp = getCurrentTimestamp()
 
-    # stack data frame
-    #self._weights.to_pickle('test_data_weights_raw_{}.pkl'.format(self._group))
-    stacked_weights = self._weights.stack() \
-      .reset_index() \
-      .rename(
-        columns={
-          'level_1':'term',
-          0:'value'})
-    #stacked_weights.to_pickle('test_data_weights_db_{}.pkl'.format(self._group))
+    # extract data and position from sparse matrix
+    data = self._weights.data()
+    (rows,cols) = self._weights.nonzero()
     # convert to a triplet item, term, value
     new_weights = [
       InsertOne(
         {
           '_id' : _get_uuid(),
-          'term' : weight['term'],
-          'itemId' : str(weight['itemId']),
+          'term' : self._weights_cols[cols[i]],
+          'itemId' : self._weights_rows[rows[i]],
           'itemGroup' : self._group,
           'timestamp' : timestamp,
-          'value' : weight['value']
+          'value' : data[i]
         }
       )
-      for weight
-      in stacked_weights.to_dict(orient='records')
-      if weight['value'] > 0
+      for i
+      in range(rows.shape[0])
     ]
 
     await self._updateStatus(0.80,"Saving weights")
