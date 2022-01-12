@@ -10,6 +10,7 @@ from ..models.score import ScoreRequestModel,ScoresResultsModel,ScoredItemModel
 import app.ml.preprocessItemsText as pit
 from ..common.utils import debug
 
+QUERY_SINGLE_TERM_MAX_SCORE = 0.9
 
 class SC:
 
@@ -113,26 +114,51 @@ class SC:
     """
     debug(self._config,'score_computation._compute_scores')
 
-    # prepare matrix with with query terms. All weights are set to 1
-    matrixData = []
-    matrixCol = []
-    for term in self._query_terms:
-      matrixData.append(1)
-      matrixCol.append(self._term2col[term])
-    matrixRow = [0] * len(matrixCol)
+    # check how many terms are present in the query
+    if (len(self._query_terms) > 1):
+
+      # prepare matrix with with query terms. All weights are set to 1
+      matrixData = []
+      matrixCol = []
+      for term in self._query_terms:
+        matrixData.append(1)
+        matrixCol.append(self._term2col[term])
+      matrixRow = [0] * len(matrixCol)
     
 
-    self._v_query = coo_matrix((matrixData,(matrixRow,matrixCol)))
-    debug(self._config,self._v_query)
+      self._v_query = coo_matrix((matrixData,(matrixRow,matrixCol)))
+      debug(self._config,self._v_query)
 
-    # compute scores
-    self._v_scores = cosine_similarity(self._m_weights,self._v_query,dense_output=False)
-    print(self._v_scores)
+      # compute scores
+      self._v_scores = cosine_similarity(self._m_weights,self._v_query,dense_output=False)
+      print(self._v_scores)
 
-    # checks if we need to trim the list
-    if 'limit' in self._request.keys() and self._request['limit'] > 0:
-      self._v_scores = self._v_scores[0:self._request['limit'],:]
+    else:
+      # when the query has only one term
+      # we cannot use the cosine similarity
+      # as score, we will pass back the weight of the term within the items
+      self._v_scores = self._m_weights
+      self._v_scores = QUERY_SINGLE_TERM_MAX_SCORE*self._v_scores/self._v_scores.max()
+
+    # sort elements from the most relevant to the least one
+    self._sort_results()
+
     debug(self._config,self._v_scores)
+
+
+  def _sort_results(self):
+    # internal function to order the scores from the most relevant to the least relevant
+    self._sorted_scores = [
+      e1[0]
+      for e1 
+      in sorted(
+        zip(
+          self._v_scores.row,
+          self._v_scores.data
+        ),
+        key = lambda e2: e2[1]
+      )
+    ]
 
 
   def getQueryTerms(self):
@@ -142,17 +168,20 @@ class SC:
   def getScores(self):
     # extract data and position from sparse matrix
     data = self._v_scores.data
-    print(data)
     (rows,cols) = self._v_scores.nonzero()
-    print(rows)
-    print(cols)
+
+    # check if we have a limit
+    limit = len(self._sorted_scores)
+    if 'limit' in self._request.keys() and self._request['limit'] > 0:
+      limit = min(limit,self._request['limit'])
+
     return [
       {
         'itemId': self._row2item[rows[i]],
         'score' : data[i]
       }
       for i
-      in range(rows.shape[0])
+      in self._sorted_scores[0:limit]
     ]
 
 
