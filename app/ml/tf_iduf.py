@@ -4,96 +4,126 @@
 #
 
 import math
-import pandas as pd
+#import pandas as pd
+from collections import Counter
+from itertools import chain
+from typing import no_type_check
+from scipy.sparse import coo_matrix
+import numpy as np
 
 #
-def TF(row,terms_column='terms'):
+def itemTF(item,terms_key='terms'):
   """
-  Computes the term frequency given a dataframe row 
-  where the column specifid in terms_column contains the terms extracted
+  Computes the term frequency given an item dictionary 
+  where the value under the terms_key contains the terms extracted
   from the item's text
 
   Ouput:
   - a dictionary of the terms extracted with the related term frequency 
   """
 
-  # number of word in the title of this dataset (aka row)
-  nwords = float(len(row[terms_column]))
+  # instantiate a counter object
+  c = Counter(item[terms_key])
+  # number of unique terms found
+  nut = len(c)
   # build output and return
   return {
-    **{
-      'itemId': row['itemId'],
-      'length': nwords
-    },
-    **{
-      word: row[terms_column].count(word)/nwords
-      for word
-      in set(row[terms_column])
-    }
+    t: o/nut
+    for t,o
+    in c.items()
   }
 
 
 #
-def IDF(df):
+def termIDF(numberOfItems,numberOfItemsForTerm):
   """
-  Computes the inverse document frequency for each row of the pandas data frame
-  provided in input
+  Computes the inverse document frequency for the specific term
 
   Output:
-  - return a dictionary with the IDF for each term extracted
+  - return the IDF in floating point
   """
-  # first compute length of the dataframe aka number of datasets provided by this provider
-  nDocs = len(df)
-  # prepare idf and return structure
-  return {
-      column: math.log10(1+nDocs/len(df[df[column]!=0]))
-      for column 
-      in df.drop(columns=['length','itemId']).columns.to_list()
-  }
+  return math.log10(1+numberOfItems/numberOfItemsForTerm)
 
 
 #
-def TF_IDuF(dfItems,terms_column='terms'):
+def TF_IDF(items,terms_key='terms'):
   """
+  Computes the TF_IDF weights for all the terms extracted from each item
+
+  Outputs:
+  - TF_IDF : scipy sparse matrix with the TF_IDF weights
+  - rows   : python list with the items id present in TF_IDF rows
+  - cols   : python list with the terms present in TF_IDF columns
   """
   
-  # compute TF for this dataset
-  dfTF = pd.DataFrame(
-    dfItems.apply(
-      TF,
-      axis=1,
-      terms_column=terms_column
-    ) \
-    .to_list()
-  ) \
-  .fillna(0)
+  # additional variables needed in the process
+  termsSet = set()
+  col2term = []
+  term2col = {}
+  row2item = []
+  matrixData = []
+  matrixRow = []
+  matrixCol = []
+  numberOfItems = len(items)
+
+  # loops on all the items of the dataset
+  for item in items:
+
+    # compute TF for all the terms found in the item
+    tfCoefficients = itemTF(item)
+
+    # extract new terms from item terms list
+    newTerms = list(set(tfCoefficients.keys()) - termsSet)
+
+    # add new terms to columns mapping
+    col2term += newTerms
+
+    # update terms to col convertion
+    for term in newTerms:
+      term2col[term] = col2term.index(term)
+
+    # update terms set
+    termsSet.update(newTerms)
+
+    # add current item to row mapping
+    row2item.append(item['itemId'])
+
+    # prepares the variables to define the sparse matrix
+    # we need to provide 3 different lists: data, the row and the col
+    for term,tf in tfCoefficients.items():
+      matrixData.append(tf)
+      matrixRow.append(len(row2item)-1)
+      matrixCol.append(term2col[term])
+
+  # create the sparse matrix for TF in column format which is best for multiplication
+  matrixTF = coo_matrix((matrixData,(matrixRow,matrixCol))).tocsc()
+
+  # create sparse vector for IDF
+  vectorIDF = coo_matrix(
+    np.array(
+      [[
+        termIDF(
+          numberOfItems,
+          (matrixTF.getcol(column)!=0).sum()
+        )
+        for column
+        in range(len(col2term))
+      ]]
+    )
+  ).tocsc()
   
-  # compute IDF for this dataset
-  dfIDF = pd.DataFrame(
-    IDF(dfTF),
-    index=[0]
-  )
+  # create TF_IDF sparse matrix by multiply element by element 
+  # the IDF vector to each row of the TF matrix
+  # the resulting sparse matrix is converted to coo which is best 
+  # fo retrieving the information to be saved in the database
+  matrixTF_IDF = matrixTF.multiply(
+    (
+      coo_matrix(
+        np.ones((numberOfItems,1))
+      ) * vectorIDF
+    ).tocsc()
+  ).tocoo()
   
-  # multiply each row of dfTF by the matching word IDF
-  dfOutput = dfTF.mul(
-    dfIDF.loc[
-      dfIDF.index.repeat(len(dfTF))
-    ] \
-    .set_index(dfTF.index)
-  )
-  dfOutput = dfOutput.drop(columns=['length','itemId'])
-  
-  # add provider column and reset index
-  dfOutput = pd.merge(
-    dfOutput,
-    dfTF[['itemId']],
-    left_index=True,
-    right_index=True
-  )
-  
-  # set id as row index
-  dfOutput.set_index('itemId',inplace=True)
-  
-  return dfOutput
+  return (matrixTF_IDF, row2item, col2term)
 
 

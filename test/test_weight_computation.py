@@ -218,7 +218,7 @@ class TestWeightsComputation(pss_test_base):
     # first number of elements
     assert len(wc._items) == len(self._wc_group_items)
     # check items id
-    wc_items_ids = pd.unique(wc._items['itemId'])
+    wc_items_ids = list(set([item['_id'] for item in wc._items]))
     assert sorted(wc_items_ids) == sorted(self._wc_group_items_ids)
     # check status
     db_status = await self._wc_status_collection.find_one()
@@ -248,13 +248,15 @@ class TestWeightsComputation(pss_test_base):
     # prepare for extract
     await wc.select_group(self._wc_selected_group)
     await wc.load()
+    print(wc._items)
     # invoke extract method
     await wc.extract()
-    # check if the new column terms has been created in the items dataframe
-    assert 'terms' in wc._items.columns
+    # check if the key terms has been created in all the items
+    is_key_terms_present = ['terms' in item.keys() for item in wc._items]
+    assert all( is_key_terms_present)
     # check if we have empty cell in the column
-    terms_extracted = wc._items.apply(lambda row: len(row['terms']) > 0, axis=1)
-    assert terms_extracted.all()
+    terms_extracted = [len(item['terms']) > 0 for item in wc._items]
+    assert all(terms_extracted)
     # check status
     db_status = await self._wc_status_collection.find_one()
     # check that the status is the final status
@@ -284,16 +286,16 @@ class TestWeightsComputation(pss_test_base):
     await wc.select_group(self._wc_selected_group)
     await wc.load()
     await wc.extract()
-    print(wc._items.head())
+    print(wc._items[0:5])
     # invoke compute method
     await wc.compute()
     # check that something was saved in the weights place holder
-    print(wc._weights.head())
+    print(wc._weights)
     assert wc._weights is not None
     # check that rows match the items id
-    assert sorted(wc._weights.index.tolist()) == sorted(self._wc_group_items_ids)
-    # check that there are some weights that are greater than zero
-    assert wc._weights[wc._weights > 0].count().sum() > 0
+    assert sorted(wc._weights_rows) == sorted(self._wc_group_items_ids)
+    # check that there is at least one weights that are greater than zero
+    assert len(wc._weights.data) > 0
     # check status
     db_status = await self._wc_status_collection.find_one()
     # check that the status is the final status
@@ -327,12 +329,15 @@ class TestWeightsComputation(pss_test_base):
     await wc.compute()
     # invoke save method
     await wc.save()
-    # find number of elements that we are expecting in the collection
-    wc_number_of_weights = len(wc._weights) * len(wc._weights.columns)
+    # find weights matrix size
+    wc_number_of_weights = wc._weights.shape[0] * wc._weights.shape[1]
+    # find number of non zero elements that we are expecting in the collection
+    wc_number_of_non_zero_weights = len(wc._weights.data)
     # count weights in collection
     db_number_of_weights = await self._wc_weights_collection.count_documents({})
     # check that something was saved in the weights place holder
     assert wc_number_of_weights >= db_number_of_weights
+    assert wc_number_of_non_zero_weights == db_number_of_weights
     assert db_number_of_weights > 0
     # check status
     db_status = await self._wc_status_collection.find_one()
