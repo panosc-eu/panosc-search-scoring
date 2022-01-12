@@ -131,7 +131,6 @@ class SC:
 
       # compute scores
       self._v_scores = cosine_similarity(self._m_weights,self._v_query,dense_output=False)
-      print(self._v_scores)
 
     else:
       # when the query has only one term
@@ -143,20 +142,25 @@ class SC:
     # sort elements from the most relevant to the least one
     self._sort_results()
 
+    print(self._v_scores)
+    print(self._sorted_scores)
+
     debug(self._config,self._v_scores)
 
 
   def _sort_results(self):
     # internal function to order the scores from the most relevant to the least relevant
+    (rows,cols) = self._v_scores.nonzero()
     self._sorted_scores = [
       e1[0]
       for e1 
       in sorted(
         zip(
-          self._v_scores.row,
+          rows,
           self._v_scores.data
         ),
-        key = lambda e2: e2[1]
+        key = lambda e2: e2[1],
+        reverse=True
       )
     ]
 

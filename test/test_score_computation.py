@@ -205,8 +205,6 @@ class TestScoresComputation(pss_test_base):
     # check the individual scores
     sc_v_scores = sc._v_scores
     for item in test_data.test_scores_computation:
-      print(item)
-      print(sc_v_scores[sc._item2row[item['itemId']],0])
       assert round(sc_v_scores[sc._item2row[item['itemId']],0],6) == item['score']
 
 
