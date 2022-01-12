@@ -67,7 +67,7 @@ class TestScoresComputation(pss_test_base):
     self._sc_test_data = self._populateDatabase()
     # query 
     self._sc_query = 'retrieval and information'
-    self._sc_query_terms = ['retriev', 'informat']
+    self._sc_query_terms = ['retriev', 'inform']
     # item ids
     self._sc_items_ids = [
       item['itemId'].lower() 
@@ -172,8 +172,10 @@ class TestScoresComputation(pss_test_base):
     # load weights
     await sc._load_weights()
     # check if we have the right terms and item in the weights dataframe
-    assert list(sc._df_weights.columns).sort() == self._sc_query_terms.sort()
-    assert list(sc._df_weights.index).sort() == self._sc_items_ids.sort()
+    assert sorted(sc._col2term) == sorted(self._sc_query_terms)
+    print(sc._row2item)
+    print(self._sc_items_ids)
+    assert sorted(sc._row2item) == sorted(self._sc_items_ids)
 
 
   # compute scores
@@ -195,15 +197,17 @@ class TestScoresComputation(pss_test_base):
     # compute scores
     await sc._compute_scores()
     #
-    print(sc._df_scores)
+    print(sc._v_scores)
     # check that we have all the expected scores
-    assert len(sc._df_scores) == len(self._sc_items_ids)
+    assert sc._v_scores.shape[0] == len(self._sc_items_ids)
     # check that we have the correct term ids
-    assert list(sc._df_scores.index).sort() == self._sc_items_ids.sort()
+    assert sorted(sc._row2item) == sorted(self._sc_items_ids)
     # check the individual scores
-    sc_df_scores = sc._df_scores.reset_index().set_index('itemId')
+    sc_v_scores = sc._v_scores
     for item in test_data.test_scores_computation:
-      assert round(sc_df_scores.loc[item['itemId'],'score'],6) == item['score']
+      print(item)
+      print(sc_v_scores[sc._item2row[item['itemId']],0])
+      assert round(sc_v_scores[sc._item2row[item['itemId']],0],6) == item['score']
 
 
 

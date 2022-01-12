@@ -92,7 +92,7 @@ def TF_IDF(items,terms_key='terms'):
     # we need to provide 3 different lists: data, the row and the col
     for term,tf in tfCoefficients.items():
       matrixData.append(tf)
-      matrixRow.append(len(row2item))
+      matrixRow.append(len(row2item)-1)
       matrixCol.append(term2col[term])
 
   # create the sparse matrix for TF in column format which is best for multiplication
@@ -119,7 +119,7 @@ def TF_IDF(items,terms_key='terms'):
   matrixTF_IDF = matrixTF.multiply(
     (
       coo_matrix(
-        np.ones(numberOfItems,1)
+        np.ones((numberOfItems,1))
       ) * vectorIDF
     ).tocsc()
   ).tocoo()

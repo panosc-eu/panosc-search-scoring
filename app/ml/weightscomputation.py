@@ -176,7 +176,7 @@ class WC():
     self._items = [
       {
         'itemId' : item['_id'],
-        'group'  : item['group'], 
+        'group'  : item['group'] if 'group' in item.keys() else 'default', 
         'terms'  : pit.preprocessItemText(item)
       }
       for item 
@@ -214,7 +214,7 @@ class WC():
     timestamp = getCurrentTimestamp()
 
     # extract data and position from sparse matrix
-    data = self._weights.data()
+    data = self._weights.data
     (rows,cols) = self._weights.nonzero()
     # convert to a triplet item, term, value
     new_weights = [

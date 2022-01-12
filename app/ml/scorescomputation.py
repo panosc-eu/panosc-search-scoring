@@ -1,6 +1,7 @@
 from pydantic import utils
 from app.common.utils import getCurrentTimestamp
 #import pandas as pd
+from scipy.sparse import coo_matrix
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -20,9 +21,9 @@ class SC:
   _db_query = None
   _query_terms = None
 
-  _df_scores = None
-  _df_query = None
-  _df_weights = None
+  _v_scores = None
+  _v_query = None
+  _m_weights = None
 
   _ts_started = None
   _ts_ended = None
@@ -80,39 +81,31 @@ class SC:
     weights = [item for item in list_cursor]
     debug(self._config,weights)
 
-    # save them in a dataframe.
-    # it also pivot the dataframe so terms are in columns and rows are the items
+    # prepare columns and rows vectors
+    # they allow us to go from column index to term
+    # and from row to index
+    self._col2term = sorted(list(
+      set([item['term'] for item in weights] + self._query_terms)
+    ))
+    self._term2col = { t:c for c,t in enumerate(self._col2term) }
+    self._row2item = sorted(list(set([item['itemId'] for item in weights])))
+    self._item2row = { i:r for r,i in enumerate(self._row2item) }
+
+    # save weights in sparse matrix.
+    # columns = terms according to col2term
+    # rows = items id according to row2item
     debug(self._config,'--- prep weights')
-    self._df_weights = pd.DataFrame(weights) \
-      .set_index(['itemGroup','itemId','term']) \
-      .unstack(level=-1) \
-      .reset_index()
-    debug(self._config,self._df_weights)
-    # adjust columns names
-    columns = list(self._df_weights.columns.get_level_values(1))
-    columns[0] = 'itemGroup'
-    columns[1] = 'itemId'
-    self._df_weights.columns = columns
-    # re-set index and fill table with zeros
-    self._df_weights = self._df_weights \
-      .set_index(['itemGroup','itemId']) \
-      .fillna(0)
-    debug(self._config,self._df_weights)
+    matrixData = []
+    matrixRow = []
+    matrixCol = []
+    for weight in weights:
+      matrixData.append(weight['value'])
+      matrixRow.append(self._item2row[weight['itemId']])
+      matrixCol.append(self._term2col[weight['term']])
 
-    # add missing query terms
-    self._df_weights[
-      list(
-        set.difference(
-          set(self._query_terms),
-          set(self._df_weights.columns)
-        )
-      )
-    ] = 0
-
-    # order columns in alphabetical order
-    self._df_weights.sort_index(axis=1,inplace=True)
-    debug(self._config,self._df_weights)
-
+    self._m_weights = coo_matrix((matrixData,(matrixRow,matrixCol)))
+    debug(self._config,self._m_weights.shape)
+    
 
   async def _compute_scores(self):
     """
@@ -120,26 +113,26 @@ class SC:
     """
     debug(self._config,'score_computation._compute_scores')
 
-    # prepare data frame with query terms. All weights are set to 1
-    self._df_query = pd.DataFrame(
-      np.ones((1,len(self._query_terms))),
-      columns=self._query_terms)
-    # sort columns alphabetically
-    self._df_query.sort_index(axis=1,inplace=True)
-    debug(self._config,self._df_query)
+    # prepare matrix with with query terms. All weights are set to 1
+    matrixData = []
+    matrixCol = []
+    for term in self._query_terms:
+      matrixData.append(1)
+      matrixCol.append(self._term2col[term])
+    matrixRow = [0] * len(matrixCol)
+    
+
+    self._v_query = coo_matrix((matrixData,(matrixRow,matrixCol)))
+    debug(self._config,self._v_query)
 
     # compute scores
-    self._df_scores = pd.DataFrame(
-      cosine_similarity(self._df_weights,self._df_query),
-      index=self._df_weights.index,
-      columns=["score"]
-    ).sort_values(by="score",ascending=False)
+    self._v_scores = cosine_similarity(self._m_weights,self._v_query,dense_output=False)
+    print(self._v_scores)
 
     # checks if we need to trim the list
     if 'limit' in self._request.keys() and self._request['limit'] > 0:
-      self._df_scores = self._df_scores.head(self._request['limit'])
-    debug(self._config,self._df_scores)
-    debug(self._config,self._df_scores.reset_index().head().to_dict(orient='records'))
+      self._v_scores = self._v_scores[0:self._request['limit'],:]
+    debug(self._config,self._v_scores)
 
 
   def getQueryTerms(self):
@@ -147,19 +140,24 @@ class SC:
 
   
   def getScores(self):
+    # extract data and position from sparse matrix
+    data = self._v_scores.data
+    print(data)
+    (rows,cols) = self._v_scores.nonzero()
+    print(rows)
+    print(cols)
     return [
       {
-        'group' : record['itemGroup'],
-        'itemId': record['itemId'],
-        'score' : record['score']
+        'itemId': self._row2item[rows[i]],
+        'score' : data[i]
       }
-      for record
-      in self._df_scores.reset_index().to_dict(orient='records')
+      for i
+      in range(rows.shape[0])
     ]
 
 
   def getScoresLength(self):
-    return len(self._df_scores)
+    return self._v_scores.shape[0]
 
   
   @property
