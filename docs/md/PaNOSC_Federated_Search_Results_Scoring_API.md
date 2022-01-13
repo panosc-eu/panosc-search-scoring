@@ -1,75 +1,38 @@
-**PaNOSC Federated Search Results Scoring API**
+# PaNOSC Federated Search Results Scoring API
+Compiled and reviewd by ESS team  
+*\(Max Novelli, Henrik Joansson , Fredrik Bolmsten, Tobias Richter\)*  
+*v 2022\-01\-13*
 
-Compiled and reviewd by ESS team
-
-\(Max Novelli, Henrik Joansson , Fredrik Bolmsten, Tobias Richter\)
-
-v 2022\-01\-13
-
-
-
-Table of Contents **Table of Contents**
-
-[Introduction2](\#\_\_RefHeading\_\_\_Toc3006\_2374475818)
-
-[Items2](\#\_\_RefHeading\_\_\_Toc3008\_2374475818)
-
-[Model2](\#\_\_RefHeading\_\_\_Toc3010\_2374475818)
-
-[Endpoints2](\#\_\_RefHeading\_\_\_Toc3012\_2374475818)
-
-[GET /items2](\#\_\_RefHeading\_\_\_Toc3014\_2374475818)
-
-[GET /items/count2](\#\_\_RefHeading\_\_\_Toc3016\_2374475818)
-
-[GET /items/\{id\}2](\#\_\_RefHeading\_\_\_Toc3018\_2374475818)
-
-[POST /items3](\#\_\_RefHeading\_\_\_Toc3020\_2374475818)
-
-[DELETE /items/\{id\}3](\#\_\_RefHeading\_\_\_Toc3022\_2374475818)
-
-[PUT /items/\{id\}3](\#\_\_RefHeading\_\_\_Toc3024\_2374475818)
-
-[PATCH /items/\{id\}3](\#\_\_RefHeading\_\_\_Toc3026\_2374475818)
-
-[Weights computation4](\#\_\_RefHeading\_\_\_Toc3028\_2374475818)
-
-[Model4](\#\_\_RefHeading\_\_\_Toc3030\_2374475818)
-
-[Endpoints4](\#\_\_RefHeading\_\_\_Toc3048\_2374475818)
-
-[GET /compute4](\#\_\_RefHeading\_\_\_Toc3032\_2374475818)
-
-[POST /compute5](\#\_\_RefHeading\_\_\_Toc3034\_2374475818)
-
-[Weights management5](\#\_\_RefHeading\_\_\_Toc3036\_2374475818)
-
-[Model5](\#\_\_RefHeading\_\_\_Toc3038\_2374475818)
-
-[Endpoints6](\#\_\_RefHeading\_\_\_Toc3040\_2374475818)
-
-[GET /weights6](\#\_\_RefHeading\_\_\_Toc3042\_2374475818)
-
-[GET /weights/count6](\#\_\_RefHeading\_\_\_Toc3044\_2374475818)
-
-[Terms management6](\#\_\_RefHeading\_\_\_Toc3046\_2374475818)
-
-[Model6](\#\_\_RefHeading\_\_\_Toc851\_1405280691)
-
-[Endpoints6](\#\_\_RefHeading\_\_\_Toc853\_1405280691)
-
-[GET /terms6](\#\_\_RefHeading\_\_\_Toc855\_1405280691)
-
-[Score computation6](\#\_\_RefHeading\_\_\_Toc857\_1405280691)
-
-[Model6](\#\_\_RefHeading\_\_\_Toc859\_1405280691)
-
-[Endpoints7](\#\_\_RefHeading\_\_\_Toc861\_1405280691)
-
-[POST /score7](\#\_\_RefHeading\_\_\_Toc863\_1405280691)
-
-
-
+## Table of Contents
+- [Introduction](\#\_\_RefHeading\_\_\_Toc3006\_2374475818)
+- [Items](\#\_\_RefHeading\_\_\_Toc3008\_2374475818)
+  - [Model](\#\_\_RefHeading\_\_\_Toc3010\_2374475818)
+  - [Endpoints](\#\_\_RefHeading\_\_\_Toc3012\_2374475818)
+    - [GET /items](\#\_\_RefHeading\_\_\_Toc3014\_2374475818)
+    - [GET /items/count](\#\_\_RefHeading\_\_\_Toc3016\_2374475818)
+    - [GET /items/\{id\}](\#\_\_RefHeading\_\_\_Toc3018\_2374475818)
+    - [POST /items](\#\_\_RefHeading\_\_\_Toc3020\_2374475818)
+    - [DELETE /items/\{id\}](\#\_\_RefHeading\_\_\_Toc3022\_2374475818)
+    - [PUT /items/\{id\}](\#\_\_RefHeading\_\_\_Toc3024\_2374475818)
+    - [PATCH /items/\{id\}](\#\_\_RefHeading\_\_\_Toc3026\_2374475818)
+- [Weights computation](\#\_\_RefHeading\_\_\_Toc3028\_2374475818)
+  - [Model](\#\_\_RefHeading\_\_\_Toc3030\_2374475818)
+  - [Endpoints](\#\_\_RefHeading\_\_\_Toc3048\_2374475818)
+    - [GET /compute](\#\_\_RefHeading\_\_\_Toc3032\_2374475818)
+    - [POST /compute](\#\_\_RefHeading\_\_\_Toc3034\_2374475818)
+- [Weights management](\#\_\_RefHeading\_\_\_Toc3036\_2374475818)
+  - [Model](\#\_\_RefHeading\_\_\_Toc3038\_2374475818)
+  - [Endpoints](\#\_\_RefHeading\_\_\_Toc3040\_2374475818)
+    - [GET /weights](\#\_\_RefHeading\_\_\_Toc3042\_2374475818)
+    - [GET /weights/count](\#\_\_RefHeading\_\_\_Toc3044\_2374475818)
+- [Terms management](\#\_\_RefHeading\_\_\_Toc3046\_2374475818)
+  - [Model](\#\_\_RefHeading\_\_\_Toc851\_1405280691)
+  - [Endpoints](\#\_\_RefHeading\_\_\_Toc853\_1405280691)
+    - [GET /terms](\#\_\_RefHeading\_\_\_Toc855\_1405280691)
+- [Score computation](\#\_\_RefHeading\_\_\_Toc857\_1405280691)
+  - [Model](\#\_\_RefHeading\_\_\_Toc859\_1405280691)
+  - [Endpoints](\#\_\_RefHeading\_\_\_Toc861\_1405280691)
+    - [POST /score](\#\_\_RefHeading\_\_\_Toc863\_1405280691)
 
 
 
@@ -104,26 +67,22 @@ Endpoints
 
 Returns the complete list of items saved in the database  
 Parameters:
-
-*   - limit: number of items returned. Default: \(int\) 1000
+  - limit: number of items returned. Default: \(int\) 1000
   - offset: number of items to remove before extracting the number of elements requested with _limit_. Default: \(int\) 0
 
 Returns:
-
-*   - Array of items. Each items has the same structure as reported in the model section.
+  - Array of items. Each items has the same structure as reported in the model section.
 
 ### GET /items/count
 
 Returns the total number of items across all groups.
 
 Parameters:
-
 * _none_
 
 Returns:
-
 * Json objects with the following structure:  
-\{ count: \(int\) \}
+  `{ count: (int) }`
 
 
 
@@ -132,11 +91,9 @@ Returns:
 Returns the item with id matching \{id\}. It returns None and 404 if the item is not found. \{id\} is the same id provided for the item by the catalogue system.
 
 Parameters:
-
 * \{id\}: \(string\) item id as it is in the catalogue system.
 
 Returns:
-
 * Requested item with structure as in model.
 
 
@@ -145,19 +102,18 @@ Returns:
 
 Insert one or more new items with their scoring information that we would like to be score in the database.  
 Parameters:
-
 * Single item or array of items. Each items should match the structure defined in the model section.
 
 Returned:
-
 * Status code: 201
 * Operation summary with the following structure:  
-\{   
- ‘success’ : True,  
- ‘items\_created’ : \(int\),  
- ‘items\_ids’ : \(list of strings\)  
-\} 
-
+```
+{   
+  "success"       : True,  
+  "items_created" : (int),  
+  "items_ids"     : (list of strings)  
+} 
+```
 
 
 ### DELETE /items/\{id\}
@@ -165,42 +121,41 @@ Returned:
 Delete the item with id \{id\}.
 
 Parameters:
-
 * \{id\}: \(string\) item id as it is in the catalogue system.
 
 Returns:
-
 * Status code: 200
 * Operation summary with the following structure:  
-\{   
- ‘successful’ : True,  
- ‘items\_deleted’ : \(int\)  
-\}
-
-
+```
+{   
+  "successful"    : True,  
+  "items_deleted" : (int)  
+}
+```
 
 ### PUT /items/\{id\}
 
 Update the whole item with id \{id\}
 
 Parameters:
-
 * \{id\}: \(string\) item id as it is in the catalogue system.
 * New values of the fields of the item with the following structure  
-\{   
- ‘group’ : \(string\),  
- ‘fields’ : \(object\)  
-\}
+```
+{   
+ "group"  : (string),  
+ "fields" : (object)  
+}
+```
 
 Returns:
-
 * Status code: 200
 * Operation summary with the following structure:  
-\{   
- ‘successful’ : True,  
- ‘items\_updated’ : \(int\)  
-\}
-
+```
+{   
+ "successful"     : True,  
+ "items_updated" : (int) 
+}
+```
 
 
 ### PATCH /items/\{id\}
@@ -208,23 +163,24 @@ Returns:
 Partial update of the item with id \{id\}
 
 Parameters:
-
 * \{id\}: \(string\) item id as it is in the catalogue system.
 * New values of the fields of the item that needs to be updated. Structure required:  
-\{   
- ‘group’ : \(string\)\[optional\],  
- ‘fields’ : \(object\)\[optional\]  
-\}
+```
+{   
+ "group"  : (string)[optional],  
+ "fields" : (object)[optional]  
+}
+```
 
 Returns:
-
 * Status code: 200
 * Operation summary with the following structure:  
-\{   
- ‘successful’ : True,  
- ‘items\_updated’ : \(int\)  
-\}
-
+```
+{   
+ "successful"    : True,  
+ "items_updated" : (int)  
+}
+```
 
 
 Weights computation
@@ -260,80 +216,62 @@ Endpoints
 Returns information about the weight computation status
 
 Parameters:
-
 * _none_
 
 Returns:
-
 * Status code: 409
 * Weight computation status with the following schema:
-
-\{
-
-requested : \(str\)\[optional\] timestamp ISO 8601 yyyymmddTHHMMSS.FFF\+ZZ
-
-started : \(str\)\[optional\] timestamp ISO 8601 yyyymmddTHHMMSS.FFF\+ZZ
-
-ended : \(str\)\[optional\] timestamp ISO 8601 yyyymmddTHHMMSS.FFF\+ZZ
-
-progressPercent : \(int\)
-
-progressDescription : \(str\)
-
-inProgress : \(boolean\)
-
-\}
+```
+{
+  requested           : (str)[optional] timestamp ISO 8601 yyyymmddTHHMMSS.FFF\+ZZ
+  started             : (str)[optional] timestamp ISO 8601 yyyymmddTHHMMSS.FFF\+ZZ
+  ended               : (str)[optional] timestamp ISO 8601 yyyymmddTHHMMSS.FFF\+ZZ
+  progressPercent     : (int)
+  progressDescription : (str) 
+  inProgress : (boolean)
+}
+```
 
 or
 
 * Status code: 500
 * Error message with the following schema:
-
-\{
-
-message: \(str\)
-
-\}
+```
+{
+  message: (str)
+}
+```
 
 ### POST /compute
 
 Triggers a new weight computation.
 
 Parameters:
-
 * none
 
 Returns:
-
 * Status code: 404
 * Weight computation status with the following schema:
-
-\{
-
-requested : \(str\) timestamp ISO 8601 yyyymmddTHHMMSS.FFF\+ZZ
-
-started : \(str\) ””
-
-ended : \(str\) ””
-
-progressPercent : \(int\) 0
-
-progressDescription : \(str\) “”
-
-inProgress : \(boolean\) True
-
-\}
+```
+{
+  requested           : (str) timestamp ISO 8601 yyyymmddTHHMMSS.FFF\+ZZ
+  started             : (str) ””
+  ended               : (str) ””
+  progressPercent     : (int) 0
+  progressDescription : (str) “”
+  inProgress          : (boolean) True
+}
+```
 
 or
 
 * Status code: 500
 * Error message with the following schema:
-
-\{
-
-message: \(str\)
-
-\}
+```
+{
+  message: (str)
+}
+```
 
 Weights management
 ==================
@@ -366,11 +304,9 @@ Endpoints
 Return all the weights stored in the service related to one of the groups. 
 
 Parameters:
-
 * group: \(str\)\[optional\]
 
 Returns:
-
 * Status code: 200
 * list of weights. Each weight will follow the model above.
 
@@ -379,20 +315,16 @@ Returns:
 Returns the total number of non\-zero weights present in the database.
 
 Parameters:
-
 * group: \(str\)\[optional\]
 
 Returns:
-
 * Status code: 200
 * number of weights with the following structure:
-
-\{
-
-count: \(int\)
-
-\}
-
+```
+{
+  count: (int)
+}
+```
 
 
 Terms management
@@ -410,23 +342,17 @@ Endpoints
 
 Returns the list of terms extracted from all the items.  
 Parameters
-
 * Group: \(str\)\[optional\] Specify the group we would like to retrieve terms from.
 
 Output:
-
 * List of terms with the following structure:
-
-\{
-
-term: \(str\)
-
-numberOfIterms: \(int\) number of items where the terms is found
-
-numberOfGroups: \(int\) number of groups where this terms is found
-
-\}
-
+```
+{
+ term           : (str)
+ numberOfIterms : (int) number of items where the terms is found
+ numberOfGroups : (int) number of groups where this terms is found
+}
+```
 
 
 Score computation
@@ -444,7 +370,6 @@ Endpoints
 
 Returns the score for the items selected according to the query submitted.  
 Parameters:
-
 * _query \(str\)_  
 sentence or list of key words to use in the relevancy scoring
 * _itemsId \(list of str\)\[optional\]_  
@@ -455,7 +380,6 @@ group of items to be scored. If not provided, all type of items from all groups 
 number of item to return after the scoring has been done and items have been sorted according to scores. All the scored items will be returned if not provided or it has a negative value. Default: _\-1_
 
 Returns:
-
 * _request \(object\)_  
 object containing the request as it was posted. Please check the previous section for details
 * _query:_

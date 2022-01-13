@@ -1,71 +1,35 @@
-**PaNOSC Federated Search Results Scoring**
+# PaNOSC Federated Search Results Scoring
+## Background Information
+Compiled and reviewed by ESS team  
+*\(Max Novelli, Henrik Joansson , Fredrik Bolmsten, Tobias Richter\)*  
+*v 2022\-01\-13*
 
-Background Information
-
-Compiled and reviewed by ESS team
-
-\(Max Novelli, Henrik Joansson , Fredrik Bolmsten, Tobias Richter\)
-
-v 2022\-01\-13
-
-
-
-Table of Contents **Table of Contents**
-
-[Introduction2](\#\_\_RefHeading\_\_\_Toc1604\_772818505)
-
-[Scoring overview2](\#\_\_RefHeading\_\_\_Toc2474\_772818505)
-
-[Scoring implementation3](\#\_\_RefHeading\_\_\_Toc2476\_772818505)
-
-[Weights computation.3](\#\_\_RefHeading\_\_\_Toc2478\_772818505)
-
-[Term Frequency \(TF\)4](\#\_\_RefHeading\_\_\_Toc2480\_772818505)
-
-[Inverse Document Frequency \(IDF\)5](\#\_\_RefHeading\_\_\_Toc2482\_772818505)
-
-[Term frequency – Inverse Document Frequency \(TF\-IDF\)5](\#\_\_RefHeading\_\_\_Toc2484\_772818505)
-
-[Score computation5](\#\_\_RefHeading\_\_\_Toc2486\_772818505)
-
-[Score meaning and value6](\#\_\_RefHeading\_\_\_Toc1165\_2611254846)
-
-[Federated items selection6](\#\_\_RefHeading\_\_\_Toc2488\_772818505)
-
-[FAQ6](\#\_\_RefHeading\_\_\_Toc2490\_772818505)
-
-[Example Implementation8](\#\_\_RefHeading\_\_\_Toc2498\_772818505)
-
-[Architecture8](\#\_\_RefHeading\_\_\_Toc2500\_772818505)
-
-[Workflow9](\#\_\_RefHeading\_\_\_Toc2535\_772818505)
-
-[Scoring service9](\#\_\_RefHeading\_\_\_Toc2585\_772818505)
-
-[On\-going updates and improvements11](\#\_\_RefHeading\_\_\_Toc1581\_2289637335)
-
-[Remove pandas dataframe dependencies11](\#\_\_RefHeading\_\_\_Toc1583\_2289637335)
-
-[Implement incremental weights update11](\#\_\_RefHeading\_\_\_Toc1585\_2289637335)
-
-[Future development12](\#\_\_RefHeading\_\_\_Toc2587\_772818505)
-
-[Biases12](\#\_\_RefHeading\_\_\_Toc2589\_772818505)
-
-[Multiple weights computation methods12](\#\_\_RefHeading\_\_\_Toc2591\_772818505)
-
-[Facility weights re\-calibration12](\#\_\_RefHeading\_\_\_Toc2593\_772818505)
-
-[Facility scoring re\-calibration12](\#\_\_RefHeading\_\_\_Toc2595\_772818505)
-
-[Federated scoring re\-calibration12](\#\_\_RefHeading\_\_\_Toc2597\_772818505)
-
-[Resources13](\#\_\_RefHeading\_\_\_Toc1587\_2289637335)
-
-
-
-
-
+## Table of Contents
+- [Introduction](\#\_\_RefHeading\_\_\_Toc1604\_772818505)
+- [Scoring overview](\#\_\_RefHeading\_\_\_Toc2474\_772818505)
+- [Scoring implementation](\#\_\_RefHeading\_\_\_Toc2476\_772818505)
+    - [Weights computation](\#\_\_RefHeading\_\_\_Toc2478\_772818505)
+        - [Term Frequency \(TF\)](\#\_\_RefHeading\_\_\_Toc2480\_772818505)
+        - [Inverse Document Frequency \(IDF\)](\#\_\_RefHeading\_\_\_Toc2482\_772818505)
+        - [Term frequency – Inverse Document Frequency \(TF\-IDF\)](\#\_\_RefHeading\_\_\_Toc2484\_772818505)
+    - [Score computation](\#\_\_RefHeading\_\_\_Toc2486\_772818505)
+    - [Score meaning and value](\#\_\_RefHeading\_\_\_Toc1165\_2611254846)
+    - [Federated items selection](\#\_\_RefHeading\_\_\_Toc2488\_772818505)
+    - [FAQ](\#\_\_RefHeading\_\_\_Toc2490\_772818505)
+- [Example Implementation](\#\_\_RefHeading\_\_\_Toc2498\_772818505)
+    - [Architecture](\#\_\_RefHeading\_\_\_Toc2500\_772818505)
+    - [Workflow](\#\_\_RefHeading\_\_\_Toc2535\_772818505)
+    - [Scoring service](\#\_\_RefHeading\_\_\_Toc2585\_772818505)
+- [On\-going updates and improvements](\#\_\_RefHeading\_\_\_Toc1581\_2289637335)
+    - [Remove pandas dataframe dependencies](\#\_\_RefHeading\_\_\_Toc1583\_2289637335)
+    - [Implement incremental weights update](\#\_\_RefHeading\_\_\_Toc1585\_2289637335)
+- [Future development](\#\_\_RefHeading\_\_\_Toc2587\_772818505)
+    - [Biases](\#\_\_RefHeading\_\_\_Toc2589\_772818505)
+    - [Multiple weights computation methods](\#\_\_RefHeading\_\_\_Toc2591\_772818505)
+    - [Facility weights re\-calibration](\#\_\_RefHeading\_\_\_Toc2593\_772818505)
+    - [Facility scoring re\-calibration](\#\_\_RefHeading\_\_\_Toc2595\_772818505)
+    - [Federated scoring re\-calibration](\#\_\_RefHeading\_\_\_Toc2597\_772818505)
+- [Resources](\#\_\_RefHeading\_\_\_Toc1587\_2289637335)
 
 Introduction
 ============
@@ -77,14 +41,14 @@ In this document, _PaNOSC federated search results scoring_ is also referred to 
 Scoring overview
 ================
 
-A search on internet quickly highlights that our problem of selecting the best results matching the query provided is related to “document relevance” in information retrieval \( _https://en.wikipedia.org/wiki/Relevance\_\(information\_retrieval\)_ and _https://moz.com/blog/determining\-relevance\-how\-similarity\-is\-scored_\). 
+A search on internet quickly highlights that our problem of selecting the best results matching the query provided is related to “document relevance” in information retrieval \( [Relevance in information retrieval on wikipedia](https://en.wikipedia.org/wiki/Relevance\_\(information\_retrieval\)) and [Determining relevance, how similarity is scored](https://moz.com/blog/determining\-relevance\-how\-similarity\-is\-scored) \) . 
 
-With further research, we found that such relevance can be implemented using a method called _term frequency – inverse document frequency_, TF\-IDF for short \( _https://en.wikipedia.org/wiki/Tf\-idf_ \), which elastic search is also based upon \( https://www.compose.com/articles/how\-scoring\-works\-in\-elasticsearch/\). 
+With further research, we found that such relevance can be implemented using a method called _term frequency – inverse document frequency_, TF\-IDF for short \( [TF-IDF on wikipedia](https://en.wikipedia.org/wiki/Tf\-idf) \), which elastic search is also based upon \( [How scoring works in elasticsearch](https://www.compose.com/articles/how\-scoring\-works\-in\-elasticsearch/) \). 
 
-TF\-IDF assigns a unique weight to each pair \(term,document\) where term is a properly pre\-processed word extracted from the document itself and document is an item in our corpus \(aka set of documents, _https://en.wikipedia.org/wiki/Text\_corpus_\). The weight is zero if the term is not present in the document, therefore is not relevant. On the contrary, the weight is one if the term has the highest relevancy in the document.
+TF\-IDF assigns a unique weight to each pair \(*term*,*document*\) where term is a properly pre\-processed word extracted from the document itself and document is an item in our corpus \(aka set of documents, [corpus on wikipedia](https://en.wikipedia.org/wiki/Text\_corpus) \). The weight is zero if the term is not present in the document, therefore is not relevant. On the contrary, the weight is one if the term has the highest relevancy in the document.
 
 Unfortunately, to compute the IDF portion of the weights, TF\-IDF method requires access to all the documents in the corpus. PaNOSC federated search relies on each facility to store their set of documents shared, compute and provide properly scored search results. As a consequence, PaNOSC federated search does not have access to the full set of documents \(as in items to be scored\), so this method cannot be used unless the infrastructure is re\-designed and re\-implemented, which is outside of this project.  
-A solution to this issue was found in the publication “TF\-IDuF: A Novel Term\-Weighting Scheme for User Modeling based on Users' Personal Document Collections” \(Beel, Joeran & Langer, Stefan & Gipp, Bela. 2017 \- _https://www.researchgate.net/profile/Joeran\-Beel/publication/313065316\_TF\-IDuF\_A\_Novel\_Term\-Weighting\_Scheme\_for\_User\_Modeling\_based\_on\_Users'\_Personal\_Document\_Collections/links/588f5ad7a6fdcc2351be729d/ \[1\]_\). The relevant finding in this paper is that the scoring results performed with TF\-IDF are minimally impacted if you perform the scoring independently on disjointed subsets of the complete set of documents. If the disjoint set of documents is defined as the set of documents that each facility has available in their catalogue and it is not accessible by other facility, we can apply the process highlighted in the paper, compute the scores locally and compare them globally. Therefore, we decided to adopt the **_TF\-IDuF_** method. We compute the scores independently at each individual facility utilizing the TF\-IDF weights computed locally, as indicated to the paper above. These results are than merged at the federated level and sorted accordingly to the computed scores.
+A solution to this issue was found in the publication [“TF\-IDuF: A Novel Term\-Weighting Scheme for User Modeling based on Users' Personal Document Collections” \(Beel, Joeran & Langer, Stefan & Gipp, Bela. 2017\)](https://www.researchgate.net/profile/Joeran-Beel/publication/313065316_TF-IDuF_A_Novel_Term-Weighting_Scheme_for_User_Modeling_based_on_Users%27_Personal_Document_Collections/links/588f5ad7a6fdcc2351be729d/TF-IDuF-A-Novel-Term-Weighting-Scheme-for-User-Modeling-based-on-Users-Personal-Document-Collections.pdf). The relevant finding in this paper is that the scoring results performed with TF\-IDF are minimally impacted if you perform the scoring independently on disjointed subsets of the complete set of documents. If the disjoint set of documents is defined as the set of documents that each facility has available in their catalogue and it is not accessible by other facility, we can apply the process highlighted in the paper, compute the scores locally and compare them globally. Therefore, we decided to adopt the **_TF\-IDuF_** method. We compute the scores independently at each individual facility utilizing the TF\-IDF weights computed locally, as indicated to the paper above. These results are than merged at the federated level and sorted accordingly to the computed scores.
 
 Scoring implementation
 ======================
@@ -139,7 +103,7 @@ The extraction workflow implements the following series of steps in the exact or
 
 Stemming is the process of reducing inflected words to a root word. Usually the the root word that we call term, resemble the original word, but it is not a real word.
 
-More information regarding stemming can be found in the following link: _https://en.wikipedia.org/wiki/Stemming_. 
+More information regarding stemming can be found on the [wikipedia page realted to stemming](https://en.wikipedia.org/wiki/Stemming). 
 
 There are other options to reduce words to terms, like lemmatization. We have selected stemming as it is a more performant process and does not have any additional dependencies. Once we have successfully deployed the first version of the scoring system, it is our intention to do further research on the subject by exploring and evaluating other reducing options within the scope of NLP .
 
@@ -151,37 +115,36 @@ The literature offers many different variations on how to compute a TF\-IDF weig
 
 ### Term Frequency \(TF\)
 
-formula
+${\displaystyle TF(t,I) = \frac{Nt(t,I)}{Nt(I)} }$
 
 Where: 
 
-* is the term frequency for the term _t_ within the scoring information of the item _I_ of the facility corpus.
-* is the number of appearances of the term _t_ within the scoring information of the item _I_ of the facility corpus.
-* is the total number of terms in the scoring information of the item _I_ of the facility corpus.
+* $TF(t,I)$ is the term frequency for the term _t_ within the scoring information of the item _I_ of the facility corpus.
+* $Nt(t,I)$ is the number of appearances of the term _t_ within the scoring information of the item _I_ of the facility corpus.
+* $Nt(I)$ is the total number of terms in the scoring information of the item _I_ of the facility corpus.
 
 
 ### Inverse Document Frequency \(IDF\)
 
-formula
+${\displaystyle IDF(t) = log_{10}(1 + \frac{T_C}{T(t)})}$
 
 Where: 
 
-* is the inverse document frequency for the term _t_ within the scoring information of the item _I_ of the facility corpus.
-* is the total number of items in the facility corpus.
-* is the number of items of the facility corpus which contains at least one instance of the term _t_ in the scoring information.
+* $IDF(t,I)$ is the inverse document frequency for the term _t_ within the scoring information of the item _I_ of the facility corpus.
+* $T_c$ is the total number of items in the facility corpus.
+* $T(t)$ is the number of items of the facility corpus which contains at least one instance of the term _t_ in the scoring information.
 
 
 
 ### Term frequency – Inverse Document Frequency \(TF\-IDF\)
 
-
+${\displaystyle TF-IDF(t,I) = TF(t,I)*IDF(t) }$
 
 Where: 
 
-* is weight computed as term frequency inverse document frequency. In our case, it is actually where _u_ indicates that the weight is computed on disjoined subsets of the complete corpus of available items. Each disjoint subset is the corpus of items available and accessible in each facility catalogue.
-* is the term frequency for the term _t_ in the scoring information of the item _I_.
-* is the inverse document frequency for the term t
-
+* $TF-IDF(t,I)$ is weight computed as term frequency inverse document frequency. In our case, it is actually $TF-IDF(t,I)$ where _u_ indicates that the weight is computed on disjoined subsets of the complete corpus of available items. Each disjoint subset is the corpus of items available and accessible in each facility catalogue.
+* $TF(t,I)$ is the term frequency for the term _t_ in the scoring information of the item _I_.
+* $IDF(t)$ is the inverse document frequency for the term t
 
 
 As stated before, the output of this step is a sparse matrix where each \(term,item\) pair has an associated TF\-IDF score computed over the corpus of items present within the facility. The matrix has dimensions _tn_ by _dn_ where _tn_ is the number of unique terms extracted from the scoring information from all the items in the facility’s corpus and _dn_ is the number of items present in the facility’s corpus. The weight matrix can be quite large, although using few optimizations, such as storing only non\-zero elements, we can reduce the storage needed considerably. The scoring system should manage all the operations needed to store and retrieve the weight matrix, so the process is completely transparent to the user. 
@@ -197,7 +160,7 @@ The scoring system will perform term extraction on the query, extracting meaning
 
 This action is equivalent to project each item in the query space which has lower dimensionality compared to the whole terms space. It is an optimization aimed to reduce the compute time which results in faster scoring and has minimal impact on the scoring results.
 
-Once the weights are retrieved, each item in the results set is scored computing the _cosine similarity_ \( _https://en.wikipedia.org/wiki/Cosine\_similarity_ and _https://scikit\-learn.org/stable/modules/generated/sklearn.metrics.pairwise.cosine\_similarity.html_\) between the vector representation of the item and the unit vector representing the query terms in the query space. The score computed is the _relevancy index_ of the item in the query space
+Once the weights are retrieved, each item in the results set is scored computing the _cosine similarity_ \( [Cosine similarity on wikipedia](https://en.wikipedia.org/wiki/Cosine\_similarity) and [SciKit Learn](https://scikit\-learn.org/stable/modules/generated/sklearn.metrics.pairwise.cosine\_similarity.html) \) between the vector representation of the item and the unit vector representing the query terms in the query space. The score computed is the _relevancy index_ of the item in the query space
 
 The items in the results set are matched with their relevancy score, sorted according to the score, the first _nu_ are sent back to the federated search, where _nu_ is the number of items requested by the user. If the user does not provide number of items requested _nu_, the system impose by default a limit _nd_ which can be set in the configuration.
 
@@ -256,52 +219,26 @@ Architecture
 
 The diagram in Fig.1 illustrates the overall schema of the whole infrastructure needed to produce PaNOSC federated search with scores. It includes the components required both at the facility level and at the federated level, as indicated in the figure.
 
-
-
-
-
+![_Figure 1. PaNOSC Federated Search Infrastructure_](../images/PaNOSC_federated_search_stack.png)  
 _Figure 1. PaNOSC Federated Search Infrastructure_
-
-
-
-
-
-
-
-
-
-
 
 As it is highlighted in the schema in fig. 1, the user interacts with the PaNOSC federated search api, which is currently exposed at [ _https://federated.scicat.ess.eu_](https://federated.scicat.ess.eu/). The full URL to access the api is [ _https://federated.scicat.ess.eu/api_](https://federated.scicat.ess.eu/api), while the swagger explorer interface can be found at [ _https://federated.scicat.ess.eu/explorer_](https://federated.scicat.ess.eu/explorer). The code for the federated search can be found in the repository [https://github.com/panosc\-eu/panosc\-federated\-search\-service.git](https://github.com/panosc\-eu/panosc\-federated\-search\-service.git) under the master branch. The current released version is v2.2, which is also running at the official production deployment as it can be verified in the status information returned at the URL [https://federated.scicat.ess.eu](https://federated.scicat.ess.eu/) _._ Following are the information retrievable through the main URL:
 
-
-
-\{
-
-"uptime\_seconds":934956.971,
-
-"uptime":"259:42:36",
-
-"api\_version":"v2.2",
-
-"docker\_image\_version":"v2.2",
-
-"hosting\_facility":"ESS",
-
-"environment":"production",
-
-"data\_providers":\[
-
-"[https://icatplus.esrf.fr/api](https://icatplus.esrf.fr/api)",
-
-"[https://scicat.ess.eu/panosc\-api](https://scicat.ess.eu/panosc\-api)",
-
-"[https://fairdata.ill.fr/fairdata/api](https://fairdata.ill.fr/fairdata/api)"
-
-\]
-
-\} _  
-_
+```
+    {
+     "uptime_seconds"       : 934956.971,
+     "uptime"               : "259:42:36",
+     "api_version"          : "v2.2",
+     "docker_image_version" : "v2.2",
+     "hosting_facility"     : "ESS",
+     "environment"          : "production",
+     "data\_providers"      : [
+       "https://icatplus.esrf.fr/api",
+       "https://scicat.ess.eu/panosc-api",
+       "https://fairdata.ill.fr/fairdata/api"
+     ]
+    }
+```
 
 A docker image with the latest release of the service is also available on docker hub at the following docker repository URL: [https://hub.docker.com/repository/docker/nitrosx71/panosc\-federated\-search](https://hub.docker.com/repository/docker/nitrosx71/panosc\-federated\-search).
 
@@ -319,8 +256,7 @@ Scoring service
 
 Figure 2 provides a detailed overview of how the ESS Search Scoring system is implemented and the endpoints groups available through the API. 
 
-
-
+![_Figure 2. ESS Search Scoring System_](../images/ESS_search_scoring_service.png)
 _Figure 2. ESS Search Scoring System_
 
 The ESS implementation of the PaNOSC Search Scoring is available as open source project at the repository [https://github.com/panosc\-eu/panosc\-search\-scoring](https://github.com/panosc\-eu/panosc\-search\-scoring) under the master branch. Current version is v1.0\-beta\-3. A docker image tagged accordingly is available on docker hub in the repository [https://hub.docker.com/repository/docker/nitrosx71/panosc\-search\-scoring](https://hub.docker.com/repository/docker/nitrosx71/panosc\-search\-scoring). 
@@ -405,21 +341,21 @@ A use case could be that we might want to enforce the requirement that each resu
 Resources
 =========
 
-* _https://en.wikipedia.org/wiki/Relevance\_\(information\_retrieval\)_
-* _https://moz.com/blog/determining\-relevance\-how\-similarity\-is\-scored_
-* _https://en.wikipedia.org/wiki/Tf\-idf_
-* https://www.compose.com/articles/how\-scoring\-works\-in\-elasticsearch/
-* _https://en.wikipedia.org/wiki/Text\_corpus_
-* _https://www.researchgate.net/profile/Joeran\-Beel/publication/313065316\_TF\-IDuF\_A\_Novel\_Term\-Weighting\_Scheme\_for\_User\_Modeling\_based\_on\_Users'\_Personal\_Document\_Collections/links/588f5ad7a6fdcc2351be729d/_
-* _https://en.wikipedia.org/wiki/Stemming_
-* _https://en.wikipedia.org/wiki/Cosine\_similarity_
-* _https://scikit\-learn.org/stable/modules/generated/sklearn.metrics.pairwise.cosine\_similarity.html_
-* _https://federated.scicat.ess.eu_
-* _https://federated.scicat.ess.eu/api_
-* _https://federated.scicat.ess.eu/explorer_
-* _https://github.com/panosc\-eu/panosc\-federated\-search\-service.git_ 
-* _https://hub.docker.com/repository/docker/nitrosx71/panosc\-federated\-search_
-* _https://www.researchgate.net/publication/329305471\_Incremental\_Sparse\_TFIDF\_Incremental\_Similarity\_with\_Bipartite\_Graphs_
-* _https://www.ijcaonline.org/archives/volume180/number13/kannan\-2018\-ijca\-916252.pdf  
-_
+* [Relevance in information retrieval](https://en.wikipedia.org/wiki/Relevance\_\(information\_retrieval\))
+* [Determining relevance, how similarity is scored](https://moz.com/blog/determining\-relevance\-how\-similarity\-is\-scored)
+* [TF-IDF](https://en.wikipedia.org/wiki/Tf\-idf)
+* [How scoring works in elasticsearch](https://www.compose.com/articles/how\-scoring\-works\-in\-elasticsearch)
+* [Text corpus](https://en.wikipedia.org/wiki/Text\_corpus)
+* [TF\-IDuF: A Novel Term\-Weighting Scheme for User Modeling based on Users' Personal Document Collections \(Beel, Joeran & Langer, Stefan & Gipp, Bela. 2017\)](https://www.researchgate.net/profile/Joeran-Beel/publication/313065316_TF-IDuF_A_Novel_Term-Weighting_Scheme_for_User_Modeling_based_on_Users%27_Personal_Document_Collections/links/588f5ad7a6fdcc2351be729d/TF-IDuF-A-Novel-Term-Weighting-Scheme-for-User-Modeling-based-on-Users-Personal-Document-Collections.pdf)
+* [Stemming](https://en.wikipedia.org/wiki/Stemming)
+* [Cosine similarity, wikipedia](https://en.wikipedia.org/wiki/Cosine\_similarity)
+* [Cosine similarity, SciKit Learn](https://scikit\-learn.org/stable/modules/generated/sklearn.metrics.pairwise.cosine\_similarity.html)
+* [PaNOSC federated search, status page](https://federated.scicat.ess.eu)
+* [PaNOSC federated search, API](https://federated.scicat.ess.eu/api)
+* [PaNOSC federated search, explorer interface](https://federated.scicat.ess.eu/explorer)
+* [PaNOSC search scoring, git repository](https://github.com/panosc\-eu/panosc\-federated\-search\-service.git)
+* [PaNOSC search scoring, docker image repository](https://hub.docker.com/repository/docker/nitrosx71/panosc\-federated\-search)
+* [Incremental Sparse TFIDF & Incremental Similarity with Bipartite Graphs](https://www.researchgate.net/publication/329305471\_Incremental\_Sparse\_TFIDF\_Incremental\_Similarity\_with\_Bipartite\_Graphs)
+* [Real Time Event Detection Adopting Incremental TF-IDF
+based LSH and Event Summary Generation](https://www.ijcaonline.org/archives/volume180/number13/kannan\-2018\-ijca\-916252.pdf)
 
