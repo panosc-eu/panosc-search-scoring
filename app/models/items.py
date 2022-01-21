@@ -9,6 +9,7 @@ class ItemModel(BaseModel):
   id: str = Field(alias='_id')
   group: str = "default"
   fields: Dict = {}
+  terms: List = []
 
   class Config:
     allow_population_by_field_name = True

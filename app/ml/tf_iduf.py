@@ -34,6 +34,7 @@ def itemTF(item,terms_key='terms'):
   }
 
 
+# ---------------------------
 #
 def termIDF(numberOfItems,numberOfItemsForTerm):
   """
@@ -45,13 +46,14 @@ def termIDF(numberOfItems,numberOfItemsForTerm):
   return math.log10(1+numberOfItems/numberOfItemsForTerm)
 
 
+# ---------------------------
 #
-def TF_IDF(items,terms_key='terms'):
+def TF(items,terms_key='terms'):
   """
-  Computes the TF_IDF weights for all the terms extracted from each item
+  Computes the TF value for all the terms extracted from each item
 
   Outputs:
-  - TF_IDF : scipy sparse matrix with the TF_IDF weights
+  - TF     : scipy sparse matrix with the TF weights
   - rows   : python list with the items id present in TF_IDF rows
   - cols   : python list with the terms present in TF_IDF columns
   """
@@ -64,13 +66,12 @@ def TF_IDF(items,terms_key='terms'):
   matrixData = []
   matrixRow = []
   matrixCol = []
-  numberOfItems = len(items)
 
   # loops on all the items of the dataset
   for item in items:
 
     # compute TF for all the terms found in the item
-    tfCoefficients = itemTF(item)
+    tfCoefficients = itemTF(item,terms_key)
 
     # extract new terms from item terms list
     newTerms = list(set(tfCoefficients.keys()) - termsSet)
@@ -86,7 +87,7 @@ def TF_IDF(items,terms_key='terms'):
     termsSet.update(newTerms)
 
     # add current item to row mapping
-    row2item.append(item['itemId'])
+    row2item.append([item['group'], item['itemId']])
 
     # prepares the variables to define the sparse matrix
     # we need to provide 3 different lists: data, the row and the col
@@ -97,6 +98,27 @@ def TF_IDF(items,terms_key='terms'):
 
   # create the sparse matrix for TF in column format which is best for multiplication
   matrixTF = coo_matrix((matrixData,(matrixRow,matrixCol))).tocsc()
+
+  return (matrixTF, row2item, col2term)
+
+
+#------------------
+#
+def TF_IDF(items,terms_key='terms'):
+  """
+  Computes the TF_IDF weights for all the terms extracted from each item
+
+  Outputs:
+  - TF_IDF : scipy sparse matrix with the TF_IDF weights
+  - rows   : python list with the items id present in TF_IDF rows
+  - cols   : python list with the terms present in TF_IDF columns
+  """
+  
+  # compute the TF matrix
+  (matrixTF, row2item, col2term) = TF(items,terms_key)
+
+  # number of items
+  numberOfItems = len(items)
 
   # create sparse vector for IDF
   vectorIDF = coo_matrix(

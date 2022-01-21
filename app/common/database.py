@@ -13,6 +13,10 @@ from .utils import debug
 #app_db_client: AsyncIOMotorClient = None
 #app_db_database: AsyncIOMotorDatabase = None
 
+COLLECTION_TF = 'weights_tf'
+COLLECTION_IDF = 'weights_idf'
+COLLECTION_ITEMS = 'items'
+COLLECTION_STATUS = 'status'
 
 #def db_connect_handler(config: Config) -> Callable:
 def db_connect_handler(app: FastAPI) -> Callable:

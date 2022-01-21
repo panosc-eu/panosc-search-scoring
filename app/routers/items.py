@@ -22,6 +22,8 @@ from ..models.items import \
   ItemPatchResponseModel, \
   ItemDeleteResponseModel
 from ..common.utils import debug
+import app.ml.preprocessItemsText as pit
+from app.ml.weightscomputation import WC
 
 # main tag, route and database collection for items
 endpointRoute = 'items'
@@ -131,6 +133,12 @@ async def get_item(
   return item
 
 
+# lambda to extract terms from item fields
+def extract_item_terms(item):
+  item['terms'] = pit.preprocessItemText(item)
+  return item
+
+
 # Route POST:/items
 @router.post(
   "/", 
@@ -143,20 +151,27 @@ async def new_items(req: Request, inputItems = Body(...)): #List[ItemCreateModel
   db = req.app.state.db_database
   
   debug(config,inputItems)
-  # check if we need to insert one or manyß
-  writtenItems = 0
+  # check if we need to insert one or many
   if type(inputItems) is dict:
     # we have only one item to insert
-    modeledItem = jsonable_encoder(ItemModel(**inputItems), by_alias=True)
-    results = await db[endpointRoute].insert_one(modeledItem)
-    itemsId = [results.inserted_id] if (type(results.inserted_id) is str and results.inserted_id) else []
+    modeledItems = jsonable_encoder([ItemModel(**extract_item_terms(inputItems))], by_alias=True)
   elif type(inputItems) is list:
     # we assume that we have many items to insert
-    modeledItems = jsonable_encoder([ItemModel(**item) for item in inputItems], by_alias=True)
-    results = await db[endpointRoute].insert_many(modeledItems)
-    itemsId = results.inserted_ids
+    modeledItems = jsonable_encoder([ItemModel(**extract_item_terms(item)) for item in inputItems], by_alias=True)
   else:
     raise Exception("Invalid data")
+
+  # perrform insert
+  results = await db[endpointRoute].insert_many(modeledItems)
+  itemsId = results.inserted_ids
+
+  # if incremental is enabled, computes weights components
+  if config.incrementalWeightsComputation:
+    WC.runIncrementalWorkflow(
+      config,
+      db,
+      new_items=modeledItems
+    )
 
   return {
     'success' : True,
@@ -179,8 +194,16 @@ async def delete_item(
   db = req.app.state.db_database
 
   item_id = req.path_params['item_id']
-
   debug(config,'Delete : ' + item_id)
+
+  # if incremental is enabled, retrieve item and triggers update
+  if config.incrementalWeightsComputation:
+    WC.runIncrementalWorkflow(
+      config,
+      db,
+      delete_items=[item_id]
+    )
+
   # delete results
   res = await db[endpointRoute].delete_many({'_id':item_id})
   # fix id issue
@@ -207,12 +230,20 @@ async def update_whole_item(
   db = req.app.state.db_database
 
   # prepare item
-  prep_item = jsonable_encoder(item,exclude_unset=True)
+  prep_item = jsonable_encoder(extract_item_terms(item),exclude_unset=True)
   # update item
   res = await db[endpointRoute].replace_one(
     {'_id': item_id},
     prep_item
   )
+
+  # if incremental is enabled, retrieve item and triggers update
+  if config.incrementalWeightsComputation:
+    WC.runIncrementalWorkflow(
+      config,
+      db,
+      update_items=[{**{'_id': item_id},**prep_item}]
+    )
 
   return {
     'successful' : True if res.modified_count == 1 else False,
@@ -236,13 +267,25 @@ async def update_partial_item(
   config = req.app.state.config
   db = req.app.state.db_database
 
-  # prepare item
+  # if item has field "field" extract terms from it
+  if 'fields' in item.keys():
+    item = extract_item_terms(item)
+
+
   prep_item = jsonable_encoder(item,exclude_unset=True)
   # update item
   res = await db[endpointRoute].update_one(
     {'_id': item_id},
     {'$set' : prep_item}
   )
+
+  # if we are updating weights incrementally, retrieve current item
+  if 'terms' in item.keys() and config.incrementalWeightsComputation:
+    WC.runIncrementalWorkflow(
+      config,
+      db,
+      update_items=[{**{'_id': item_id},**prep_item}]
+    )
 
   return {
     'successful' : True if res.modified_count == 1 else False,
