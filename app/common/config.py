@@ -26,7 +26,8 @@ class Config:
     "version" : "unknown",
     "waitToStartCompute" : 5,
     "debug" : False,
-    "deployment" : "unknown"
+    "deployment" : "unknown",
+    'incrementalWeigthsComputation' : False
   }
 
   # list of environmental variables
@@ -39,7 +40,8 @@ class Config:
     "version" : "str",
     "waitToStartCompute" : "int",
     "debug" : "bool",
-    "deployment" : "str"
+    "deployment" : "str",
+    'incrementalWeigthsComputation' : "bool"
   }
 
 
