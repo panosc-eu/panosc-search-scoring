@@ -27,7 +27,7 @@ class Config:
     "waitToStartCompute" : 5,
     "debug" : False,
     "deployment" : "unknown",
-    'incrementalWeigthsComputation' : False
+    'incrementalWeightsComputation' : False
   }
 
   # list of environmental variables
@@ -41,7 +41,7 @@ class Config:
     "waitToStartCompute" : "int",
     "debug" : "bool",
     "deployment" : "str",
-    'incrementalWeigthsComputation' : "bool"
+    'incrementalWeightsComputation' : "bool"
   }
 
 

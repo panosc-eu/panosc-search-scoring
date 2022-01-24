@@ -126,10 +126,16 @@ async def get_item(
       content=None
     )
 
+  # fix if group is not specified
+  print(item)
+  if not( 'group' in item.keys() and item['group']):
+    item['group'] = 'default'
+
   # fix id issue
   item['id'] = item['_id']
   del item['_id']
   
+  print(item)
   return item
 
 
@@ -230,7 +236,8 @@ async def update_whole_item(
   db = req.app.state.db_database
 
   # prepare item
-  prep_item = jsonable_encoder(extract_item_terms(item),exclude_unset=True)
+  #prep_item = jsonable_encoder(extract_item_terms(item),exclude_unset=True)
+  prep_item = jsonable_encoder(extract_item_terms(item.dict()),exclude_unset=True)
   # update item
   res = await db[endpointRoute].replace_one(
     {'_id': item_id},
@@ -267,12 +274,11 @@ async def update_partial_item(
   config = req.app.state.config
   db = req.app.state.db_database
 
-  # if item has field "field" extract terms from it
-  if 'fields' in item.keys():
-    item = extract_item_terms(item)
-
-
   prep_item = jsonable_encoder(item,exclude_unset=True)
+  # if item has field "field" extract terms from it
+  if 'fields' in prep_item.keys():
+    prep_item = extract_item_terms(prep_item)
+
   # update item
   res = await db[endpointRoute].update_one(
     {'_id': item_id},
@@ -280,7 +286,7 @@ async def update_partial_item(
   )
 
   # if we are updating weights incrementally, retrieve current item
-  if 'terms' in item.keys() and config.incrementalWeightsComputation:
+  if 'terms' in prep_item.keys() and config.incrementalWeightsComputation:
     WC.runIncrementalWorkflow(
       config,
       db,
