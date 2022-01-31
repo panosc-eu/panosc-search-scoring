@@ -18,11 +18,12 @@ import pandas as pd
 from app.common.config import Config
 from app.ml.weightscomputation import WC
 import test.test_data as test_data
-from app.routers import compute as computeRouter
+#from app.routers import compute as computeRouter
 from app.routers import items as itemsRouter
-from app.routers import weights as weightsRouter
+#from app.routers import weights as weightsRouter
 from test.pss_test_base import pss_test_base
 from app.models.compute import ComputeStatusModel,ComputeStatusResponseModel
+from app.common.database import COLLECTION_ITEMS, COLLECTION_STATUS, COLLECTION_TF, COLLECTION_IDF
 
 
 class TestWeightsComputation(pss_test_base):
@@ -44,7 +45,8 @@ class TestWeightsComputation(pss_test_base):
   _wc_database = None
   _wc_items_collection = None
   _wc_status_collection = None
-  _wc_weights_collection = None 
+  _wc_tf_collection = None 
+  _wc_idf_collection = None 
   _wc_groups_list = None
   _wc_selected_group = None
   _wc_group_items = None
@@ -62,12 +64,12 @@ class TestWeightsComputation(pss_test_base):
   # we need to insert items and weights
   def _populateDatabase(self):
     # insert status
-    self._db_collection = self._db_database[computeRouter.endpointRoute]
+    self._db_collection = self._db_database[COLLECTION_STATUS]
     self._data = test_data.test_status
     res1 = super()._populateDatabase(itemKey=self._initial_status)
 
     # first inserts items
-    self._db_collection = self._db_database[itemsRouter.endpointRoute]
+    self._db_collection = self._db_database[COLLECTION_ITEMS]
     self._data = test_data.test_items
     res2 = super()._populateDatabase()
 
@@ -84,9 +86,10 @@ class TestWeightsComputation(pss_test_base):
     # instantiate database and collections
     db_client = AsyncIOMotorClient(self._wc_config.mongodb_url)
     self._wc_database = db_client[self._wc_config.database]
-    self._wc_items_collection = self._wc_database[itemsRouter.endpointRoute]
-    self._wc_status_collection = self._wc_database[computeRouter.endpointRoute]
-    self._wc_weights_collection = self._wc_database[weightsRouter.endpointRoute]
+    self._wc_items_collection = self._wc_database[COLLECTION_ITEMS]
+    self._wc_status_collection = self._wc_database[COLLECTION_STATUS]
+    self._wc_tf_collection = self._wc_database[COLLECTION_TF]
+    self._wc_idf_collection = self._wc_database[COLLECTION_IDF]
     # obtains list of groups from test data
     self._wc_groups_list = list(set([
       item['group'] if 'group' in item.keys() else 'default'
@@ -121,14 +124,16 @@ class TestWeightsComputation(pss_test_base):
       self._wc_database, 
       self._wc_items_collection, 
       self._wc_status_collection, 
-      self._wc_weights_collection
+      self._wc_tf_collection,
+      self._wc_idf_collection
     )
     # test properties
     assert wc._config == self._wc_config
     assert wc._db == self._wc_database
     assert wc._items_coll == self._wc_items_collection
     assert wc._status_coll == self._wc_status_collection
-    assert wc._weights_coll == self._wc_weights_collection 
+    assert wc._tf_coll == self._wc_tf_collection 
+    assert wc._idf_coll == self._wc_idf_collection 
 
 
   # list groups
@@ -139,23 +144,29 @@ class TestWeightsComputation(pss_test_base):
     self._initial_status = 'in_progress'
     # insert a items to be scored
     self._initialize_environment_for_class_test()
+    #db_status = await self._wc_status_collection.find_one()
+    #print("test list group ---------------------------")
+    #print(db_status)
+    #print("test list group ---------------------------")
     # instantiate class
     wc = WC(
       self._wc_config, 
       self._wc_database, 
       self._wc_items_collection, 
       self._wc_status_collection, 
-      self._wc_weights_collection
+      self._wc_tf_collection,
+      self._wc_idf_collection
     )
     # retrieve group list
     wc_groups_list = await wc.groups_list()
-    print(wc_groups_list)
+    #print(wc_groups_list)
     # test list
     assert sorted(wc_groups_list) == sorted(self._wc_groups_list)
     # check status
     db_status = await self._wc_status_collection.find_one()
+    #print(db_status)
     # check that the status is the final status
-    assert db_status['progressPercent'] == 0.03
+    assert db_status['progressPercent'] == 0.06
     assert db_status['started'] is not None
     assert db_status['ended'] is None
     assert db_status['inProgress'] is True
@@ -176,7 +187,8 @@ class TestWeightsComputation(pss_test_base):
       self._wc_database, 
       self._wc_items_collection, 
       self._wc_status_collection, 
-      self._wc_weights_collection
+      self._wc_tf_collection,
+      self._wc_idf_collection
     )
     # select group
     print(self._wc_selected_group)
@@ -186,7 +198,7 @@ class TestWeightsComputation(pss_test_base):
     # check status
     db_status = await self._wc_status_collection.find_one()
     # check that the status is the final status
-    assert db_status['progressPercent'] == 0.05
+    assert db_status['progressPercent'] == 0.10
     assert db_status['started'] is not None
     assert db_status['ended'] is None
     assert db_status['inProgress'] is True
@@ -206,24 +218,25 @@ class TestWeightsComputation(pss_test_base):
       self._wc_database, 
       self._wc_items_collection, 
       self._wc_status_collection, 
-      self._wc_weights_collection
+      self._wc_tf_collection,
+      self._wc_idf_collection
     )
     # select group
     await wc.select_group(self._wc_selected_group)
     # invoke load method
-    await wc.load()
+    await wc.load_items()
     # check values loaded
     # they are in a pandas dataframe
     #
     # first number of elements
-    assert len(wc._items) == len(self._wc_group_items)
+    assert len(wc._items_to_be_updated) == len(self._wc_group_items)
     # check items id
-    wc_items_ids = list(set([item['_id'] for item in wc._items]))
+    wc_items_ids = list(set([item['_id'] for item in wc._items_to_be_updated]))
     assert sorted(wc_items_ids) == sorted(self._wc_group_items_ids)
     # check status
     db_status = await self._wc_status_collection.find_one()
     # check that the status is the final status
-    assert db_status['progressPercent'] == 0.20
+    assert db_status['progressPercent'] == 0.16
     assert db_status['started'] is not None
     assert db_status['ended'] is None
     assert db_status['inProgress'] is True

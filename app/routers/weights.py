@@ -15,6 +15,7 @@ from .items import endpointRoute as itemCollection
 
 endpointRoute = "weights"
 
+
 # instantiate the fastapi router object
 router = APIRouter(
   prefix='/' + endpointRoute,

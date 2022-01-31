@@ -95,7 +95,7 @@ class WC():
       "progressPercent" : progress,
       "progressDescription" : message,
       "inProgress" : inProgress,
-      "incrementalWeightsUpdates" : self._config.incrementalWeightsUpdate
+      "incrementalWeightsComputation" : self._config.incrementalWeightsComputation
     }
     # add additional fields
     if started is not None:
@@ -105,12 +105,14 @@ class WC():
     # check that typing is correct
     ComputeStatusModel(**status)
     # update status in database
-    await self._status_coll.update_many( 
+    res = await self._status_coll.update_many( 
       {}, 
       { 
         "$set" : status
-      }
+      },
+      upsert = True
     )
+    print(res)
 
 
   # -------------------
@@ -180,38 +182,38 @@ class WC():
     pipeline = []
     if self._group == 'default':
       pipeline.append({
-        "$match" : {
-          { "$or" : [
-            { "group" : { "$exists" : False } },
+        '$match' : {
+          '$or' : [
+            { "group" : { '$exists' : False } },
             { "group" : "default" }
-          ]}
+          ]
         }
       })
     elif self._group:
       pipeline.append({
-        "$match" : {
-          { "group" : self._group }
+        '$match' : {
+          "group" : self._group
         }
       })
 
-    pipeline.append({
+    temp = {
       '$project' : {
         '_id' : 0,
         'item_id' : '$_id',
         'group' : { '$ifNull' : [ "$group", "default" ]},
-        'terms' : 1,
-        'fields' : 0
+        'terms' : 1
       }
-    })
+    }
+    pipeline.append(temp)
 
-    list_cursor = await self._items_coll.aggregation(pipeline) \
+    list_cursor = await self._items_coll.aggregate(pipeline) \
       .to_list(length=None)
 
     # load all selected items
     self._items_to_be_updated = [item for item in list_cursor]
 
     # update status in database
-    await self._updateStatus(0.16,"{} items loaded".format(len(self._items)))
+    await self._updateStatus(0.16,"{} items loaded".format(len(self._items_to_be_updated)))
 
 
 
@@ -391,14 +393,14 @@ class WC():
 
   # -------------------
   #
-  async def delete_all_IDF(sef):
+  async def delete_all_IDF(self):
     # delete all teh IDF weights
     # update status in database
-    await self._updateStatus(0.45,"Deleting all IDF weights")
+    await self._updateStatus(0.50,"Deleting all IDF weights")
 
     await self._idf_coll.delete({})    
 
-    await self._updateStatus(0.46,"Deleted all IDF weights")
+    await self._updateStatus(0.51,"Deleted all IDF weights")
 
 
 
@@ -408,7 +410,7 @@ class WC():
     # remove TF weights that related to updated or deleted items
 
     # update status in database
-    await self._updateStatus(0.45,"Deleting obsolete IDF weights for {} updated terms".format(len(self._terms_update)))
+    await self._updateStatus(0.55,"Deleting obsolete IDF weights for {} updated terms".format(len(self._terms_update)))
 
     db_operations = [
       DeleteOne(
@@ -422,7 +424,7 @@ class WC():
     ]
     res = await self._idf_coll.bulk_write(db_operations)
 
-    await self._updateStatus(0.46,"IDF weights for updated terms deleted")
+    await self._updateStatus(0.56,"IDF weights for updated terms deleted")
 
 
   # -------------------
@@ -431,7 +433,7 @@ class WC():
     # compute and save IDF weights
     # list of terms per group has to be ready
 
-    await self._updateStatus(0.50,"Updating IDF weights")
+    await self._updateStatus(0.60,"Updating IDF weights")
 
     # prepare expression for matching
     list_match_condition = [
@@ -462,7 +464,7 @@ class WC():
       },
       {
         '$lookup' : {
-          'from' : 'items',
+          'from' : COLLECTION_ITEMS,
           'let' : { 'group' : '$_id.group' },
           'pipeline' : [
             {
@@ -493,6 +495,7 @@ class WC():
           '_id' : 0,
           'term' : 1,
           'group' : 1,
+          'timestamp' : self._timestamp,
           'IDF' : { '$log10' : { '$sum' : [ 1, { '$divide' : [ '$cd', '$cdt' ] } ] } }
         }   
       },
@@ -509,7 +512,7 @@ class WC():
     # res should be empty as we save the results directly with $merge
     res = self._tf_coll.aggregation(pipeline)
 
-    await self._updateStatus(0.50,"IDF weights updated")
+    await self._updateStatus(0.61,"IDF weights updated")
 
 
 

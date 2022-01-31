@@ -9,6 +9,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from ..models.score import ScoreRequestModel,ScoresResultsModel,ScoredItemModel
 import app.ml.preprocessItemsText as pit
 from ..common.utils import debug
+from app.common.database import COLLECTION_TF, COLLECTION_IDF
+
 
 QUERY_SINGLE_TERM_MAX_SCORE = 0.9
 
@@ -17,7 +19,8 @@ class SC:
   _config = None
   _request = None
   _db = None
-  _weights_coll = None
+  _tf_coll = None
+  _idf_coll = None
 
   _db_query = None
   _query_terms = None
@@ -30,11 +33,23 @@ class SC:
   _ts_ended = None
 
 
-  def __init__(self,config,request,db,weights_coll):
+  def __init__(
+    self,
+    config,
+    request,
+    database,
+    tf_collection = COLLECTION_TF,
+    idf_collection = COLLECTION_IDF
+  ):
     self._config = config
     self._request = request
-    self._db = db
-    self._weights_coll = weights_coll
+    self._db = database
+    self._tf_coll = self._db[tf_collection] \
+      if isinstance(tf_collection,str) \
+      else tf_collection
+    self._idf_coll = self._db[idf_collection] \
+      if isinstance(idf_collection,str) \
+      else idf_collection
 
 
   async def _extract_query_terms(self):
@@ -52,32 +67,78 @@ class SC:
     debug(self._config,'score_computation._load_weights')
     
     # load weights that refer to the query terms and the items passed
-    # if not item ids have been passed, we use all items
+    # if no item ids have been passed, we use all items
     # same with the group
-    self._db_query = {
-      'term' : {
-        '$in' : self._query_terms
+    match_conditions = [
+      { 'term' : 
+        { '$in' : self._query_terms }
       }
-    }
-
+    ]
     # check if we have the list of items id
     if "itemIds" in self._request.keys() and self._request['itemIds']:
-      self._db_query['itemId'] = { '$in' : self._request['itemIds'] }
+      match_conditions.append(
+        { 'itemId' : { '$in' : self._request['itemIds'] } }
+      )
 
     if "group" in self._request.keys() and self._request['group']:
-      self._db_query['itemGroup'] = self._request['group']
+      match_conditions.append(
+        { 'itemGroup' : self._request['group'] }
+      )
+
+    if len(match_conditions) > 1:
+      match_conditions = {
+        "$and" : match_conditions
+      }
+
+    # build pipeline to retrieve TF, IDF and the combined weight
+    self._db_pipeline = [
+      {
+        "$match" : match_conditions
+      },
+      {
+        "$lookup" :{
+          'from' : COLLECTION_IDF,
+          'let' : { 'term' : '$term', 'group' : '$group' },
+          'pipeline' : [
+            {
+              '$match' : {
+                '$expr' : {
+                  '$and' : [
+                    { '$eq' : [ '$term' , '$$term' ]},
+                    { '$eq' : [ '$group' , '$$group' ] }
+                  ]
+                }
+              }
+            }
+          ],
+          'as' : 'idf'
+        }
+      },
+      {
+        "$project" : {
+          "_id" : 0,
+          "term" : 1,
+          "itemId" : 1,
+          "group" : 1,
+          "TF" : "$TF",
+          "IDF" : "$idf.IDF",
+          "weight" : { "$multiply" : [ "$TF", "$idf.IDF" ]}
+        }
+      }
+    ]
+
 
     # query ready
-    debug(self._config,'--- query')
-    debug(self._config,self._db_query)
-    debug(self._config,self._weights_coll.name)
-    list_cursor = await self._weights_coll.find(
-      self._db_query,
-      { 
-        '_id' : 0, 
-        'timestamp': 0
-      }
-    ).to_list(None)
+    debug(self._config,'--- pipeline')
+    debug(self._config,self._db_pipeline)
+    list_cursor = await self._tf_coll.aggregate(self._db_pipeline) \
+      .to_list(length=None)
+
+    # load all selected items
+    self._terms_update = list(set(
+      self._terms_update + [term for term in list_cursor]
+    )) 
+
     debug(self._config,list_cursor)
     weights = [item for item in list_cursor]
     debug(self._config,weights)
@@ -89,7 +150,7 @@ class SC:
       set([item['term'] for item in weights] + self._query_terms)
     ))
     self._term2col = { t:c for c,t in enumerate(self._col2term) }
-    self._row2item = sorted(list(set([item['itemId'] for item in weights])))
+    self._row2item = sorted(list(set([[item['group'], item['itemId']] for item in weights])))
     self._item2row = { i:r for r,i in enumerate(self._row2item) }
 
     # save weights in sparse matrix.
@@ -100,7 +161,7 @@ class SC:
     matrixRow = []
     matrixCol = []
     for weight in weights:
-      matrixData.append(weight['value'])
+      matrixData.append(weight['weight'])
       matrixRow.append(self._item2row[weight['itemId']])
       matrixCol.append(self._term2col[weight['term']])
 
@@ -207,16 +268,18 @@ class SC:
   async def runWorkflow(
       config,
       request: ScoreRequestModel,
-      db,
-      weights_coll
+      database,
+      tf_collection = COLLECTION_TF,
+      idf_collection = COLLECTION_IDF
   ): 
     debug(config,'score_computation.runWorkflow')
     # initialize class
     sc = SC(
       config,
       request,
-      db,
-      weights_coll
+      database,
+      tf_collection,
+      idf_collection
     )
 
     sc._ts_started = getCurrentTimestamp()
