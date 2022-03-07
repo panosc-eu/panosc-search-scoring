@@ -74,7 +74,14 @@ def TF(items,terms_key='terms'):
     tfCoefficients = itemTF(item,terms_key)
 
     # extract new terms from item terms list
-    newTerms = list(set(tfCoefficients.keys()) - termsSet)
+    newTerms = list(
+      set(
+        [
+          (item['group'],term)
+          for term
+          in tfCoefficients.keys()
+        ]
+      ) - termsSet)
 
     # add new terms to columns mapping
     col2term += newTerms
@@ -94,7 +101,7 @@ def TF(items,terms_key='terms'):
     for term,tf in tfCoefficients.items():
       matrixData.append(tf)
       matrixRow.append(len(row2item)-1)
-      matrixCol.append(term2col[term])
+      matrixCol.append(term2col[(item['group'],term)])
 
   # create the sparse matrix for TF in column format which is best for multiplication
   matrixTF = coo_matrix((matrixData,(matrixRow,matrixCol))).tocsc()

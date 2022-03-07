@@ -19,7 +19,7 @@ stop_words = set(stop_words_t1)
 del stop_words_t1
 
 # punctuation symbols that we want to remove from the text
-punctuation_symbols = "!\"#$%&()*+-,./:;<=>;?@[\]^_`{|}~\n"
+punctuation_symbols = "!\"#$%&()*+-,./:;<=>;?@[\]^_`{|}~\n–"
 
 # instantiate a stemmer from nltk package
 stemmer = PorterStemmer()
@@ -31,6 +31,11 @@ def removePunctuation(instring,symbols):
   for symbol in symbols:
     outstring = outstring.replace(symbol, ' ')
   return outstring
+
+
+# remove unicode characters that cannot be interpreted
+def removeUnicode(instring):
+  return re.sub('\\\\u\d\d\d\d', ' ', instring)
 
 
 # remove stop words
@@ -105,6 +110,7 @@ def preprocessItemText(item):
   outstring = item if isinstance(item,str) else json.dumps(item['fields'])
 
   outstring = outstring.lower()
+  outstring = removeUnicode(outstring)
   outstring = removePunctuation(outstring,punctuation_symbols)
   outstring = removeStopWords(outstring)
   outstring = removeApostrophy(outstring)

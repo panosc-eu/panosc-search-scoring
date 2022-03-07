@@ -3,7 +3,10 @@
 # notes: test the weight computation
 #  
 
+from operator import itemgetter
 from app.models.weights import WeightModel
+from app.models.tf import TfModel
+from app.models.idf import IdfModel
 from json.decoder import JSONDecodeError
 from fastapi.testclient import TestClient
 import pymongo
@@ -33,7 +36,7 @@ class TestWeightsComputation(pss_test_base):
   _db_database_name = test_data.test_database
   # define collection we want to work with
   _endpoint_name = itemsRouter.endpointRoute
-  _data = test_data.test_items
+  _data = test_data.test_items_terms
   # initial status needed for the test
   # check in test data for possible values
   _initial_status = 'not_run_yet'
@@ -70,7 +73,7 @@ class TestWeightsComputation(pss_test_base):
 
     # first inserts items
     self._db_collection = self._db_database[COLLECTION_ITEMS]
-    self._data = test_data.test_items
+    self._data = test_data.test_items_terms
     res2 = super()._populateDatabase()
 
     return res2
@@ -90,11 +93,20 @@ class TestWeightsComputation(pss_test_base):
     self._wc_status_collection = self._wc_database[COLLECTION_STATUS]
     self._wc_tf_collection = self._wc_database[COLLECTION_TF]
     self._wc_idf_collection = self._wc_database[COLLECTION_IDF]
+
+    # create index on weights collection
+    self._wc_idf_collection.create_index(
+      [
+        ("group", pymongo.ASCENDING),
+        ("term", pymongo.ASCENDING)
+      ],
+      unique=True
+    )
     # obtains list of groups from test data
     self._wc_groups_list = list(set([
       item['group'] if 'group' in item.keys() else 'default'
       for item 
-      in test_data.test_items.values()
+      in test_data.test_items_terms.values()
     ]))
     #self._wc_selected_group = [item for item in self._wc_groups_list if item != 'default'][0]
     self._wc_selected_group = self._wc_groups_list[0]
@@ -102,7 +114,7 @@ class TestWeightsComputation(pss_test_base):
     self._wc_group_items = [
       item 
       for item 
-      in test_data.test_items.values() 
+      in test_data.test_items_terms.values() 
       if ('group' in item.keys() and item['group'] == self._wc_selected_group) \
         or ( self._wc_selected_group == 'default' and 'group' not in item.keys() )
     ]
@@ -231,7 +243,7 @@ class TestWeightsComputation(pss_test_base):
     # first number of elements
     assert len(wc._items_to_be_updated) == len(self._wc_group_items)
     # check items id
-    wc_items_ids = list(set([item['_id'] for item in wc._items_to_be_updated]))
+    wc_items_ids = list(set([item['itemId'] for item in wc._items_to_be_updated]))
     assert sorted(wc_items_ids) == sorted(self._wc_group_items_ids)
     # check status
     db_status = await self._wc_status_collection.find_one()
@@ -242,10 +254,10 @@ class TestWeightsComputation(pss_test_base):
     assert db_status['inProgress'] is True
 
 
-  # extract
+  # check terms
   @pytest.mark.asyncio
-  async def test_extract_terms(self):
-    print("test_weight_computation.test_extract_terms")
+  async def test_check_terms(self):
+    print("test_weight_computation.test_check_terms")
     # set initial status
     self._initial_status = 'in_progress'
     # insert a items to be scored
@@ -256,24 +268,22 @@ class TestWeightsComputation(pss_test_base):
       self._wc_database, 
       self._wc_items_collection, 
       self._wc_status_collection, 
-      self._wc_weights_collection
+      self._wc_tf_collection,
+      self._wc_idf_collection
     )
     # prepare for extract
     await wc.select_group(self._wc_selected_group)
-    await wc.load()
-    print(wc._items)
-    # invoke extract method
-    await wc.extract()
+    await wc.load_items()
     # check if the key terms has been created in all the items
-    is_key_terms_present = ['terms' in item.keys() for item in wc._items]
+    is_key_terms_present = ['terms' in item.keys() for item in wc._items_to_be_updated]
     assert all( is_key_terms_present)
     # check if we have empty cell in the column
-    terms_extracted = [len(item['terms']) > 0 for item in wc._items]
+    terms_extracted = [len(item['terms']) > 0 for item in wc._items_to_be_updated]
     assert all(terms_extracted)
     # check status
     db_status = await self._wc_status_collection.find_one()
     # check that the status is the final status
-    assert db_status['progressPercent'] == 0.40
+    assert db_status['progressPercent'] == 0.16
     assert db_status['started'] is not None
     assert db_status['ended'] is None
     assert db_status['inProgress'] is True
@@ -281,8 +291,8 @@ class TestWeightsComputation(pss_test_base):
 
   # compute
   @pytest.mark.asyncio
-  async def test_compute_weights(self):
-    print("test_weight_computation.test_compute_weight")
+  async def test_compute_tf_weights(self):
+    print("test_weight_computation.test_compute_tf_weight")
     # set initial status
     self._initial_status = 'in_progress'
     # insert a items to be scored
@@ -293,26 +303,27 @@ class TestWeightsComputation(pss_test_base):
       self._wc_database, 
       self._wc_items_collection, 
       self._wc_status_collection, 
-      self._wc_weights_collection
+      self._wc_tf_collection,
+      self._wc_idf_collection
     )
     # prepare for this test
     await wc.select_group(self._wc_selected_group)
-    await wc.load()
-    await wc.extract()
-    print(wc._items[0:5])
+    await wc.load_items()
+    print(wc._items_to_be_updated[0:5])
     # invoke compute method
-    await wc.compute()
+    await wc.compute_TF()
     # check that something was saved in the weights place holder
-    print(wc._weights)
-    assert wc._weights is not None
+    print(wc._TF)
+    assert wc._TF is not None
     # check that rows match the items id
-    assert sorted(wc._weights_rows) == sorted(self._wc_group_items_ids)
+    TF_items_ids = [item[1] for item in wc._TF_rows]
+    assert sorted(TF_items_ids) == sorted(self._wc_group_items_ids)
     # check that there is at least one weights that are greater than zero
-    assert len(wc._weights.data) > 0
+    assert len(wc._TF.data) > 0
     # check status
     db_status = await self._wc_status_collection.find_one()
     # check that the status is the final status
-    assert db_status['progressPercent'] == 0.60
+    assert db_status['progressPercent'] == 0.21
     assert db_status['started'] is not None
     assert db_status['ended'] is None
     assert db_status['inProgress'] is True
@@ -320,8 +331,8 @@ class TestWeightsComputation(pss_test_base):
 
   # save
   @pytest.mark.asyncio
-  async def test_save_weights(self):
-    print("test_weight_computation.test_save_weight")
+  async def test_save_TF_weights(self):
+    print("test_weight_computation.test_save_TF_weight")
     # set initial status
     self._initial_status = 'in_progress'
     # insert a items to be scored
@@ -332,60 +343,148 @@ class TestWeightsComputation(pss_test_base):
       self._wc_database, 
       self._wc_items_collection, 
       self._wc_status_collection, 
-      self._wc_weights_collection
+      self._wc_tf_collection,
+      self._wc_idf_collection
     )
     # select group
     await wc.select_group(self._wc_selected_group)
     # prepare for this test
-    await wc.load()
-    await wc.extract()
-    await wc.compute()
+    await wc.load_items()
+    await wc.compute_TF()
     # invoke save method
-    await wc.save()
+    await wc.save_TF()
     # find weights matrix size
-    wc_number_of_weights = wc._weights.shape[0] * wc._weights.shape[1]
+    wc_number_of_tf_weights = wc._TF.shape[0] * wc._TF.shape[1]
     # find number of non zero elements that we are expecting in the collection
-    wc_number_of_non_zero_weights = len(wc._weights.data)
+    wc_number_of_non_zero_tf_weights = len(wc._TF.data)
     # count weights in collection
-    db_number_of_weights = await self._wc_weights_collection.count_documents({})
+    db_number_of_tf_weights = await self._wc_tf_collection.count_documents({})
     # check that something was saved in the weights place holder
-    assert wc_number_of_weights >= db_number_of_weights
-    assert wc_number_of_non_zero_weights == db_number_of_weights
-    assert db_number_of_weights > 0
+    assert wc_number_of_tf_weights >= db_number_of_tf_weights
+    assert wc_number_of_non_zero_tf_weights == db_number_of_tf_weights
+    assert db_number_of_tf_weights > 0
     # check status
     db_status = await self._wc_status_collection.find_one()
     # check that the status is the final status
-    assert db_status['progressPercent'] == 0.90
+    assert db_status['progressPercent'] == 0.27
     assert db_status['started'] is not None
     assert db_status['ended'] is None
     assert db_status['inProgress'] is True
     
 
-  # runWorkflow
+  # delete all IDF
   @pytest.mark.asyncio
-  async def test_run_workflow(self):
-    print("test_weight_computation.test_run_workflow")
+  async def test_delete_all_IDF_weights(self):
+    print("test_weight_computation.test_delte_all_IDF_weights")
+    # set initial status
+    self._initial_status = 'in_progress'
+    # insert a items to be scored
+    self._initialize_environment_for_class_test()
+    # instantiate class
+    wc = WC(
+      self._wc_config, 
+      self._wc_database, 
+      self._wc_items_collection, 
+      self._wc_status_collection, 
+      self._wc_tf_collection,
+      self._wc_idf_collection
+    )
+    # select group
+    await wc.select_group(self._wc_selected_group)
+    # prepare for this test
+    await wc.load_items()
+    await wc.compute_TF()
+    await wc.save_TF()
+    # caall the delete all method for IDF
+    await wc.delete_all_IDF()
+    # count idf weights in collection
+    db_number_of_idf_weights = await self._wc_idf_collection.count_documents({})
+    # check that there are no IDF weights in the collection
+    assert db_number_of_idf_weights == 0
+    # check status
+    db_status = await self._wc_status_collection.find_one()
+    # check that the status is the final status
+    assert db_status['progressPercent'] == 0.51
+    assert db_status['started'] is not None
+    assert db_status['ended'] is None
+    assert db_status['inProgress'] is True
+
+
+  # compute and save IDF
+  @pytest.mark.asyncio
+  async def test_compute_and_save_IDF_weights(self):
+    print("test_weight_computation.test_compute_and_save_IDF_weights")
+    # set initial status
+    self._initial_status = 'in_progress'
+    # insert a items to be scored
+    self._initialize_environment_for_class_test()
+    # instantiate class
+    wc = WC(
+      self._wc_config, 
+      self._wc_database, 
+      self._wc_items_collection, 
+      self._wc_status_collection, 
+      self._wc_tf_collection,
+      self._wc_idf_collection
+    )
+    # select group
+    await wc.select_group(self._wc_selected_group)
+    # prepare for this test
+    await wc.load_items()
+    await wc.compute_TF()
+    await wc.save_TF()
+    await wc.delete_all_IDF()
+    # caall the delete all method for IDF
+    await wc.compute_and_save_IDF()
+    # computes how many IDF weights we should expect
+    # which is the number of terms (aka columns in the TF matrix) 
+    wc_number_of_idf_weights = len(wc._TF_cols)
+    # count idf weights in collection
+    db_number_of_idf_weights = await self._wc_idf_collection.count_documents({})
+    # check that there are no IDF weights in the collection
+    assert db_number_of_idf_weights == wc_number_of_idf_weights
+    # check status
+    db_status = await self._wc_status_collection.find_one()
+    # check that the status is the final status
+    assert db_status['progressPercent'] == 0.61
+    assert db_status['started'] is not None
+    assert db_status['ended'] is None
+    assert db_status['inProgress'] is True
+
+
+
+  # run offline workflow
+  @pytest.mark.asyncio
+  async def test_run_offline_workflow(self):
+    print("test_weight_computation.test_run_offline_workflow")
     # set initial status
     self._initial_status = 'requested'
     # insert a items to be scored
     self._initialize_environment_for_class_test()
     # instantiate class
-    wc = await WC.runWorkflow(
+    wc = await WC.runOfflineWorkflow(
       self._wc_config, 
-      self._wc_database, 
-      self._wc_items_collection, 
-      self._wc_status_collection, 
-      self._wc_weights_collection
+      self._wc_database
     )
     # count weights in collection
-    db_number_of_weights = await self._wc_weights_collection.count_documents({})
+    db_number_of_tf_weights = await self._wc_tf_collection.count_documents({})
+    db_number_of_idf_weights = await self._wc_idf_collection.count_documents({})
     # check that something was saved in the weights place holder
-    assert db_number_of_weights > 0
-    # check one element to match the model
-    db_weight = await self._wc_weights_collection.find_one()
-    print(db_weight)
+    assert db_number_of_tf_weights > 0
+    assert db_number_of_idf_weights > 0
+    # check one TF weight to match the model
+    db_tf_weight = await self._wc_tf_collection.find_one()
+    print(db_tf_weight)
     try:
-      db_weight_model = WeightModel(**db_weight)
+      db_tf_weight_model = TfModel(**db_tf_weight)
+      assert True
+    except:
+      assert False
+    # check one IDF weight to match the model
+    db_idf_weight = await self._wc_idf_collection.find_one()
+    print(db_idf_weight)
+    try:
+      db_idf_weight_model = IdfModel(**db_idf_weight)
       assert True
     except:
       assert False
@@ -405,3 +504,138 @@ class TestWeightsComputation(pss_test_base):
     assert db_status['inProgress'] is False
 
 
+
+  # run online workflow
+  @pytest.mark.asyncio
+  async def test_run_online_workflow(self):
+    print("test_weight_computation.test_run_online_workflow")
+    # set initial status
+    self._initial_status = 'requested'
+    # insert a items to be scored
+    self._initialize_environment_for_class_test()
+    # run offline workflow to populate weights
+    wc = await WC.runOfflineWorkflow(
+      self._wc_config, 
+      self._wc_database
+    )
+    # retrieve few tf and idf weights for comparison
+    db_tf_weights_1 = {}
+    db_idf_weights_1 = {}
+    db_terms_1 = {}
+    for group in self._wc_groups_list:
+      db_tf_weights_1[group] = await self._wc_tf_collection.find({'group' : group}).to_list(None)
+      db_idf_weights_1[group] = await self._wc_idf_collection.find({'group' : group}).to_list(None)
+      db_terms_1[group] = await self._wc_tf_collection.find(
+        filter = {'group': group},
+        projection = {'term'}
+      ).to_list(None)
+    # check status
+    db_status = await self._wc_status_collection.find_one()
+    # does it match the model
+    try:
+      db_status_model = ComputeStatusModel(**db_status)
+      assert True
+    except:
+      assert False
+    # check that the status is the final status
+    assert db_status['progressPercent'] == 1.00
+    assert db_status['started'] is not None
+    assert db_status['ended'] is not None
+    assert db_status['inProgress'] is False
+    
+    
+    # run online workflow removing 2 items of group group_1
+    work_items_id = [
+      i['id'].lower()
+      for k,i
+      in self._data.items()
+      if k in ['item_3','item_5']
+    ]
+    work_items = [
+      self._prepItemForInsertion(i)
+      for i
+      in self._wc_test_data
+      if i['id'] in work_items_id
+    ]
+
+    # trigger online workflow with items removed
+    # remove items selected
+    await self._wc_items_collection.delete_many({'_id' :{ '$in' : work_items_id }})
+
+    wc = await WC.runIncrementalWorkflow(
+      self._wc_config,
+      self._wc_database,
+      delete_items=work_items_id
+    )
+    # retrieve new TF and IDF and compare them with previous
+    db_tf_weights_2 = {}
+    db_idf_weights_2 = {}
+    db_terms_2 = {}
+    for group in self._wc_groups_list:
+      db_tf_weights_2[group] = await self._wc_tf_collection.find({'group' : group}).to_list(None)
+      db_idf_weights_2[group] = await self._wc_idf_collection.find({'group' : group}).to_list(None)
+      db_terms_2[group] = await self._wc_tf_collection.find(
+        filter = {'group': group},
+        projection = {'term'}
+      ).to_list(None)
+    # first we check that the weights for group default are the same
+    assert db_tf_weights_1['default'] == db_tf_weights_2['default']
+    assert db_idf_weights_1['default'] == db_idf_weights_2['default']
+    # than we check that the weights for group group_1 are different
+    assert db_tf_weights_1['group_1'] != db_tf_weights_2['group_1']
+    assert db_idf_weights_1['group_1'] != db_idf_weights_2['group_1']
+    # check status
+    db_status = await self._wc_status_collection.find_one()
+    # does it match the model
+    try:
+      db_status_model = ComputeStatusModel(**db_status)
+      assert True
+    except:
+      assert False
+    # check that the status is the final status
+    assert db_status['progressPercent'] == 1.00
+    assert db_status['started'] is not None
+    assert db_status['ended'] is not None
+    assert db_status['inProgress'] is False
+    
+
+    # insert back the two items that were removed
+    res = self._wc_items_collection.insert_many(work_items)
+
+    # trigger online workflow with items re-added
+    wc = await WC.runIncrementalWorkflow(
+      self._wc_config,
+      self._wc_database,
+      new_items=work_items
+    )
+    # retrieve new TF and IDF and compare them with initial ones
+    db_tf_weights_2 = {}
+    db_idf_weights_2 = {}
+    db_terms_2 = {}
+    for group in self._wc_groups_list:
+      db_tf_weights_2[group] = await self._wc_tf_collection.find({'group' : group}).to_list(None)
+      db_idf_weights_2[group] = await self._wc_idf_collection.find({'group' : group}).to_list(None)
+      db_terms_2[group] = await self._wc_tf_collection.find(
+        filter = {'group': group},
+        projection = {'term'}
+      ).to_list(None)
+    # first we check that the weights for group default are the same
+    assert db_tf_weights_1['default'] == db_tf_weights_2['default']
+    assert db_idf_weights_1['default'] == db_idf_weights_2['default']
+    # than we check that the weights for group group_1 are different
+    assert db_tf_weights_1['group_1'] == db_tf_weights_2['group_1']
+    assert db_idf_weights_1['group_1'] == db_idf_weights_2['group_1']
+
+    # check status
+    db_status = await self._wc_status_collection.find_one()
+    # does it match the model
+    try:
+      db_status_model = ComputeStatusModel(**db_status)
+      assert True
+    except:
+      assert False
+    # check that the status is the final status
+    assert db_status['progressPercent'] == 1.00
+    assert db_status['started'] is not None
+    assert db_status['ended'] is not None
+    assert db_status['inProgress'] is False

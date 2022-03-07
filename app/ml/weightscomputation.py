@@ -8,6 +8,7 @@ from pymongo import InsertOne, UpdateOne, DeleteOne
 from fastapi.encoders import jsonable_encoder
 from datetime import datetime
 from uuid import uuid4
+from collections import defaultdict
 
 from app.models.weights import WeightModel
 import app.ml.preprocessItemsText as pit
@@ -38,6 +39,8 @@ class WC():
   _delete_items = None
   _terms_list = None
   _TF = None
+  _TF_rows = None
+  _TF_cols = None
   _IDF = None
   _rows = None
   _cols = None
@@ -199,7 +202,7 @@ class WC():
     temp = {
       '$project' : {
         '_id' : 0,
-        'item_id' : '$_id',
+        'itemId' : '$_id',
         'group' : { '$ifNull' : [ "$group", "default" ]},
         'terms' : 1
       }
@@ -226,15 +229,21 @@ class WC():
     # update status in database
     await self._updateStatus(0.20,"Computing weights TF")
 
-    # computes weights for pair item,term
-    (self._TF,self._weights_rows,self._weights_cols) = tf_iduf.TF(self._items)
+    if self._items_to_be_updated:
+      # computes weights for pair item,term
+      (self._TF,self._TF_rows,self._TF_cols) = tf_iduf.TF(self._items_to_be_updated)
 
-    # updates the list of terms to update
-    self._terms_update += self._weights_cols
+      # updates the list of terms to update
+      self._terms_update += self._TF_cols
 
-    # update status in database
-    await self._updateStatus(0.21,"Weights TF computed")
+      # update status in database
+      await self._updateStatus(0.21,"Weights TF computed")
 
+    else:
+      self._TF = None
+      # update status in database
+      await self._updateStatus(0.22,"Weights TF computing not necessary")
+      
 
   # -------------------
   #
@@ -245,34 +254,43 @@ class WC():
     # update status in database
     await self._updateStatus(0.25,"Preparing weights TF for database update")
 
-    self._timestamp = getCurrentTimestamp()
+    if self._TF is not None:
 
-    # extract data and position from sparse matrix
-    data = self._TF.data
-    (rows,cols) = self._TF.nonzero()
-    # convert to a triplet item, term, value
-    db_operations = [
-      UpdateOne(
-        {
-          'term' : self._weights_cols[cols[i]],
-          'itemId' : self._weights_rows[rows[i]][1],
-          'group' : self._weights_rows[rows[i]][0]
-        },
-        {
-          'timestamp' : self._timestamp,
-          'TF' : data[i]
-        },
-        upsert=True
-      )
-      for i
-      in range(rows.shape[0])
-    ]
+      self._timestamp = getCurrentTimestamp()
 
-    await self._updateStatus(0.26,"Saving weights")
-    res = await self._TF_coll.bulk_write(db_operations)
+      # extract data and position from sparse matrix
+      data = self._TF.data
+      (rows,cols) = self._TF.nonzero()
+      # convert to a triplet item, term, value
+      db_operations = [
+        UpdateOne(
+          {
+            'term' : self._TF_cols[cols[i]][1],
+            'itemId' : self._TF_rows[rows[i]][1],
+            'group' : self._TF_rows[rows[i]][0]
+          },
+          {
+            '$set' : {
+              'timestamp' : self._timestamp,
+              'TF' : data[i]
+            }
+          },
+          upsert=True
+        )
+        for i
+        in range(rows.shape[0])
+      ]
 
-    # update status in database
-    await self._updateStatus(0.27,"Weights updated")
+      await self._updateStatus(0.26,"Saving TF weights")
+      res = await self._tf_coll.bulk_write(db_operations)
+
+      # update status in database
+      await self._updateStatus(0.27,"TF weights updated")
+
+    else:
+      # update status in database
+      await self._updateStatus(0.28,"TF weights update no necessary")
+
 
 
   # -------------------
@@ -290,6 +308,15 @@ class WC():
     await self._updateStatus(0.31,"Old TF weights deleted")
 
 
+  # -------------------
+  #
+  def _get_item_id(self,item):
+    if isinstance(item,dict):
+      if '_id' in item.keys():
+        return(item['_id'])
+      elif 'id' in item.keys():
+        return(item['id'])
+    return item
 
   # -------------------
   #
@@ -308,19 +335,26 @@ class WC():
     # list the ids of the item that will change fields
     # and the ones that will be removed
     self._items_id_remove_tf = [
-      item['itemId'] 
+      self._get_item_id(item)
       for item 
       in  self._update_items
       if 'fields' in item.keys()
     ] + [
-      item['itemId'] if isinstance(item,dict) else item
+      self._get_item_id(item)
       for item 
       in self._delete_items
     ]
 
     self._terms_update = []
 
-    await self._updateStatus(0.35,"Loaded {} items".format(len(self._items_list)))
+    await self._updateStatus(
+      0.35,
+      "Item set. New items {}, deleted items {}, updated items {}".format(
+        len(self._new_items),
+        len(self._delete_items),
+        len(self._update_items)
+      )
+    )
 
 
   # -------------------
@@ -333,26 +367,33 @@ class WC():
 
     # build the pipeline
     pipeline = [
+    #  {
+    #    '$match' : {
+    #      '$expr' : {
+    #        '$in' : [ '$_id', self._items_id_remove_tf ]
+    #      }
+    #    }
+    #  },
+    #  {
+    #    '$unwind' : '$terms'
+    #  },
       {
         '$match' : {
           '$expr' : {
-            '$in' : [ '$_id', self._items_id_remove_tf ]
+            '$in' : [ '$itemId', self._items_id_remove_tf ]
           }
         }
-      },
-      {
-        '$unwind' : '$terms'
       },
       {
         '$project' : {
           '_id' : 0,
           'group' : { '$ifNull' : [ "$group", "default" ]},
-          'terms' : 1
+          'term' : 1
         }
       },
       {
         '$group' : {
-          '_id' : { 'group' : '$group', 'term' : '$terms' },
+          '_id' : { 'group' : '$group', 'term' : '$term' },
           'count' : { '$sum' : 1 }
         }
       },
@@ -365,12 +406,12 @@ class WC():
       }
     ]
 
-    list_cursor = await self._items_coll.aggregation(pipeline) \
+    list_cursor = await self._tf_coll.aggregate(pipeline) \
       .to_list(length=None)
 
     # load all selected items
     self._terms_update = list(set(
-      self._terms_update + [term for term in list_cursor]
+      self._terms_update + [(i['group'],i['term']) for i in list_cursor]
     )) 
 
     # update status in database
@@ -380,13 +421,13 @@ class WC():
 
   # -------------------
   # 
-  async def delete_TF_for_updated_terms(self):
-    # remove TF weights that related to updated or deleted items
+  async def delete_TF_for_deleted_terms(self):
+    # remove TF weights that related to deleted items
 
     # update status in database
     await self._updateStatus(0.45,"Deleting obsolete TF weights")
 
-    await self._tf_coll.delete({'_id' : { '$in' : self._items_to_be_updated}})    
+    res = await self._tf_coll.delete_many({'itemId' : { '$in' : self._items_id_remove_tf}})    
 
     await self._updateStatus(0.46,"Obsolete TF weights deleted")
 
@@ -398,7 +439,7 @@ class WC():
     # update status in database
     await self._updateStatus(0.50,"Deleting all IDF weights")
 
-    await self._idf_coll.delete({})    
+    await self._idf_coll.delete_many({})    
 
     await self._updateStatus(0.51,"Deleted all IDF weights")
 
@@ -436,18 +477,21 @@ class WC():
     await self._updateStatus(0.60,"Updating IDF weights")
 
     # prepare expression for matching
+    reshape_cond = defaultdict(lambda: [])
+    for i in self._terms_update:
+        reshape_cond[i[0]].append(i[1])
     list_match_condition = [
       {
         '$and' : [
-          { '$in' : [ '$term',  i[1] ] },
-          { '$eq' : [ '$group', i[0] ] }
+          { '$in' : [ '$term' , list(set(l)) ] },
+          { '$eq' : [ '$group', g ] }
         ]
       }
-      for i
-      in self._terms_update
+      for g,l
+      in reshape_cond.items()
     ]
-    match_condition = list_match_condition[0] \
-      if len(list_match_condition) \
+    list_match_condition = list_match_condition[0] \
+      if len(list_match_condition) == 1 \
       else { '$or' : list_match_condition }
     # prepare the pipeline for the aggregation
     pipeline = [
@@ -501,7 +545,7 @@ class WC():
       },
       {
         '$merge' : {
-          'into' : 'IDF',
+          'into' : COLLECTION_IDF,
           'on' : [ 'group' , 'term' ],
           'whenMatched' : 'replace',
           'whenNotMatched' : 'insert'
@@ -510,7 +554,9 @@ class WC():
     ]
     # run aggregation
     # res should be empty as we save the results directly with $merge
-    res = self._tf_coll.aggregation(pipeline)
+    print("---------")
+    print(pipeline)
+    res = await self._tf_coll.aggregate(pipeline).to_list(None)
 
     await self._updateStatus(0.61,"IDF weights updated")
 
@@ -579,10 +625,17 @@ class WC():
     await wc.select_group(None)
     await wc.set_items(new_items=new_items,update_items=update_items,delete_items=delete_items)
     await wc.load_terms_for_updated_items()
-    await wc.delete_TF_for_updated_terms()
+    await wc.delete_TF_for_deleted_terms()
     await wc.delete_IDF_for_updated_terms()
     await wc.compute_TF()
     await wc.save_TF()
     await wc.compute_and_save_IDF()
 
+    # update status to completed
+    await wc._updateStatus(
+      1.00,
+      'All weights computed and updated',
+      ended=getCurrentTimestamp(),
+      inProgress=False)
+    
     return wc
