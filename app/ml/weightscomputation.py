@@ -259,7 +259,7 @@ class WC():
       self._timestamp = getCurrentTimestamp()
 
       # extract data and position from sparse matrix
-      data = self._TF.data
+      #data = self._TF.data
       (rows,cols) = self._TF.nonzero()
       # convert to a triplet item, term, value
       db_operations = [
@@ -272,7 +272,7 @@ class WC():
           {
             '$set' : {
               'timestamp' : self._timestamp,
-              'TF' : data[i]
+              'TF' : self._TF[rows[i],cols[i]]
             }
           },
           upsert=True
