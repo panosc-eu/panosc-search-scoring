@@ -113,7 +113,7 @@ class TestTerms(pss_test_base):
       )
       assert response.status_code == 200
       jsonResponse = response.json()
-      print(jsonResponse)
+      #print(jsonResponse)
       jsonResponse = [TermResponseModel(**item) for item in response.json()]
       assert len(jsonResponse) == len(term_counts)
 
@@ -149,7 +149,7 @@ class TestTerms(pss_test_base):
         self._endpoint_url + '/count',
       )
       
-      print(response)
+      #print(response)
       assert response.status_code == 200
       jsonResponse = response.json()
       assert jsonResponse["count"] == len(term_counts)

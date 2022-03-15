@@ -243,7 +243,7 @@ class TestWeightsComputation(pss_test_base):
     # first number of elements
     assert len(wc._items_to_be_updated) == len(self._wc_group_items)
     # check items id
-    wc_items_ids = list(set([item['itemId'] for item in wc._items_to_be_updated]))
+    wc_items_ids = list(set([item['id'] for item in wc._items_to_be_updated]))
     assert sorted(wc_items_ids) == sorted(self._wc_group_items_ids)
     # check status
     db_status = await self._wc_status_collection.find_one()
@@ -523,8 +523,33 @@ class TestWeightsComputation(pss_test_base):
     db_idf_weights_1 = {}
     db_terms_1 = {}
     for group in self._wc_groups_list:
-      db_tf_weights_1[group] = await self._wc_tf_collection.find({'group' : group}).to_list(None)
-      db_idf_weights_1[group] = await self._wc_idf_collection.find({'group' : group}).to_list(None)
+      db_tf_weights_1[group] = {
+        (i['itemId'],i['term']) : i['TF']
+        for i 
+        in await self._wc_tf_collection.find(
+          filter = {'group' : group},
+          projection = {
+            '_id' : 0,
+            'group' : 1,
+            'itemId' : 1,
+            'term' : 1,
+            'TF' : 1 
+          }
+        ).to_list(None)
+      }
+      db_idf_weights_1[group] = {
+        i['term'] : i['IDF']
+        for i 
+        in await self._wc_idf_collection.find(
+          filter = {'group' : group},
+          projection = {
+            '_id' : 0,
+            'group' : 1,
+            'term' : 1,
+            'IDF' : 1 
+          }
+        ).to_list(None)
+      }
       db_terms_1[group] = await self._wc_tf_collection.find(
         filter = {'group': group},
         projection = {'term'}
@@ -551,11 +576,16 @@ class TestWeightsComputation(pss_test_base):
       in self._data.items()
       if k in ['item_3','item_5']
     ]
-    work_items = [
-      self._prepItemForInsertion(i)
+    work_items_workflow = [
+      i
       for i
       in self._wc_test_data
       if i['id'] in work_items_id
+    ]
+    work_items_insert = [
+      self._prepItemForInsertion(i)
+      for i
+      in work_items_workflow
     ]
 
     # trigger online workflow with items removed
@@ -572,8 +602,33 @@ class TestWeightsComputation(pss_test_base):
     db_idf_weights_2 = {}
     db_terms_2 = {}
     for group in self._wc_groups_list:
-      db_tf_weights_2[group] = await self._wc_tf_collection.find({'group' : group}).to_list(None)
-      db_idf_weights_2[group] = await self._wc_idf_collection.find({'group' : group}).to_list(None)
+      db_tf_weights_2[group] = {
+        (i['itemId'],i['term']) : i['TF']
+        for i 
+        in await self._wc_tf_collection.find(
+          filter = {'group' : group},
+          projection = {
+            '_id' : 0,
+            'group' : 1,
+            'itemId' : 1,
+            'term' : 1,
+            'TF' : 1 
+          }
+        ).to_list(None)
+      }
+      db_idf_weights_2[group] = {
+        i['term'] : i['IDF']
+        for i 
+        in await self._wc_idf_collection.find(
+          filter = {'group' : group},
+          projection = {
+            '_id' : 0,
+            'group' : 1,
+            'term' : 1,
+            'IDF' : 1 
+          }
+        ).to_list(None)
+      }
       db_terms_2[group] = await self._wc_tf_collection.find(
         filter = {'group': group},
         projection = {'term'}
@@ -600,21 +655,46 @@ class TestWeightsComputation(pss_test_base):
     
 
     # insert back the two items that were removed
-    res = self._wc_items_collection.insert_many(work_items)
+    res = await self._wc_items_collection.insert_many(work_items_insert)
 
     # trigger online workflow with items re-added
     wc = await WC.runIncrementalWorkflow(
       self._wc_config,
       self._wc_database,
-      new_items=work_items
+      new_items=work_items_workflow
     )
     # retrieve new TF and IDF and compare them with initial ones
     db_tf_weights_2 = {}
     db_idf_weights_2 = {}
     db_terms_2 = {}
     for group in self._wc_groups_list:
-      db_tf_weights_2[group] = await self._wc_tf_collection.find({'group' : group}).to_list(None)
-      db_idf_weights_2[group] = await self._wc_idf_collection.find({'group' : group}).to_list(None)
+      db_tf_weights_2[group] = {
+        (i['itemId'],i['term']) : i['TF']
+        for i 
+        in await self._wc_tf_collection.find(
+        filter = {'group' : group},
+          projection = {
+            '_id' : 0,
+            'group' : 1,
+            'itemId' : 1,
+            'term' : 1,
+            'TF' : 1 
+          }
+        ).to_list(None)
+      }
+      db_idf_weights_2[group] = {
+        i['term'] : i['IDF']
+        for i 
+        in await self._wc_idf_collection.find(
+          filter = {'group' : group},
+          projection = {
+            '_id' : 0,
+            'group' : 1,
+            'term' : 1,
+            'IDF' : 1 
+          }
+        ).to_list(None)
+      }
       db_terms_2[group] = await self._wc_tf_collection.find(
         filter = {'group': group},
         projection = {'term'}

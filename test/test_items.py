@@ -96,7 +96,7 @@ class TestItems(pss_test_base):
   def test_create_multiple_items(self):
     # list of items to be created
     items_to_be_created = [self._lowercaseItemId(item) for item in self._data]
-    print(items_to_be_created)
+    #print(items_to_be_created)
     items_ids = [item["id"] for item in self._data]
 
     with TestClient(app.app) as client:
@@ -154,7 +154,7 @@ class TestItems(pss_test_base):
   def test_count_items(self):
     print('test_items.test_count_items')
     test_items = self._populateDatabase()
-    print(test_items)
+    #print(test_items)
   
     with TestClient(app.app) as client:
       # count items
@@ -163,9 +163,9 @@ class TestItems(pss_test_base):
       )
       assert response.status_code == 200
       jsonResponse = response.json()
-      print(jsonResponse)
-      print(self._db_collection_name)
-      print(list(self._db_collection.find({})))
+      #print(jsonResponse)
+      #print(self._db_collection_name)
+      #print(list(self._db_collection.find({})))
       assert jsonResponse['count'] == len(test_items)
 
 
@@ -259,7 +259,7 @@ class TestItems(pss_test_base):
       )
       assert response.status_code == 404
       jsonResponse = response.json()
-      print(jsonResponse)
+      #print(jsonResponse)
       assert jsonResponse is None
 
 
@@ -276,8 +276,8 @@ class TestItems(pss_test_base):
         }
       }
       # calls the api with the full object
-      print(originalItem)
-      print(modifiedItem1)
+      #print(originalItem)
+      #print(modifiedItem1)
       response = client.put(
         url="/items/" + originalItem["id"],
         json=modifiedItem1

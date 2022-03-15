@@ -115,7 +115,7 @@ class WC():
       },
       upsert = True
     )
-    print(res)
+    #print(res)
 
 
   # -------------------
@@ -202,7 +202,7 @@ class WC():
     temp = {
       '$project' : {
         '_id' : 0,
-        'itemId' : '$_id',
+        'id' : '$_id',
         'group' : { '$ifNull' : [ "$group", "default" ]},
         'terms' : 1
       }
@@ -453,19 +453,26 @@ class WC():
     # update status in database
     await self._updateStatus(0.55,"Deleting obsolete IDF weights for {} updated terms".format(len(self._terms_update)))
 
-    db_operations = [
-      DeleteOne(
-        { '$and' : [
-            { 'term' : t[1] },
-            { 'group' : t[0] }
-          ]}
-      )
-      for t
-      in self._terms_update
-    ]
-    res = await self._idf_coll.bulk_write(db_operations)
+    # check if we
+    if len(self._terms_update)>0:
+      db_operations = [
+        DeleteOne(
+          { '$and' : [
+              { 'term' : t[1] },
+              { 'group' : t[0] }
+            ]}
+        ) 
+        for t
+        in self._terms_update
+      ]
+      res = await self._idf_coll.bulk_write(db_operations)
 
-    await self._updateStatus(0.56,"IDF weights for updated terms deleted")
+      await self._updateStatus(0.56,"IDF weights for updated terms deleted")
+
+    else:
+
+      await self._updateStatus(0.56,"no IDF weights to be deleted")
+
 
 
   # -------------------
@@ -554,8 +561,8 @@ class WC():
     ]
     # run aggregation
     # res should be empty as we save the results directly with $merge
-    print("---------")
-    print(pipeline)
+    #print("---------")
+    #print(pipeline)
     res = await self._tf_coll.aggregate(pipeline).to_list(None)
 
     await self._updateStatus(0.61,"IDF weights updated")

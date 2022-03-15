@@ -35,21 +35,21 @@ class pss_test_base:
 
     # connect to database
     cls._db_client = pymongo.MongoClient(cls._db_database_uri)
-    print(cls._db_client)
-    print(cls._db_database_name)
+    #print(cls._db_client)
+    #print(cls._db_database_name)
     cls._db_database = cls._db_client[cls._db_database_name]
-    print(cls._db_database)
+    #print(cls._db_database)
     if not cls._db_collection_name:
       # database collection name has been left empty
       # so that means that the collection name is th esame as the endpoint name
       cls._db_collection_name = cls._endpoint_name
 
-    print(cls._db_collection_name)
+    #print(cls._db_collection_name)
     cls._db_collection = cls._db_database[cls._db_collection_name]
-    print(cls._db_collection)
-    print(cls._endpoint_name)
+    #print(cls._db_collection)
+    #print(cls._endpoint_name)
     cls._endpoint_url = "/" + cls._endpoint_name
-    print(cls._endpoint_url)
+    #print(cls._endpoint_url)
 
 
   #
@@ -133,7 +133,7 @@ class pss_test_base:
       for item 
       in outData
     ])
-    print(res.inserted_ids)
+    #print(res.inserted_ids)
 
     return outData
 

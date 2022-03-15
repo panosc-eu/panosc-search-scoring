@@ -127,7 +127,7 @@ async def get_item(
     )
 
   # fix if group is not specified
-  print(item)
+  #print(item)
   if not( 'group' in item.keys() and item['group']):
     item['group'] = 'default'
 
@@ -135,7 +135,7 @@ async def get_item(
   item['id'] = item['_id']
   del item['_id']
   
-  print(item)
+  #print(item)
   return item
 
 

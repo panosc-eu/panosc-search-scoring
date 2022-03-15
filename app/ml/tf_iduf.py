@@ -94,7 +94,7 @@ def TF(items,terms_key='terms'):
     termsSet.update(newTerms)
 
     # add current item to row mapping
-    row2item.append([item['group'], item['itemId']])
+    row2item.append([item['group'], item['id']])
 
     # prepares the variables to define the sparse matrix
     # we need to provide 3 different lists: data, the row and the col

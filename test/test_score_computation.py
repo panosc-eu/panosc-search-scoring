@@ -147,9 +147,9 @@ class TestScoresComputation(pss_test_base):
       self._sc_weights_collection
     )
     # extract query terms
-    print(sc)
+    #print(sc)
     await sc._extract_query_terms()
-    print(sc._query_terms)
+    #print(sc._query_terms)
     # test list
     assert sc._query_terms.sort() == self._sc_query_terms.sort()
 
@@ -173,8 +173,8 @@ class TestScoresComputation(pss_test_base):
     await sc._load_weights()
     # check if we have the right terms and item in the weights dataframe
     assert sorted(sc._col2term) == sorted(self._sc_query_terms)
-    print(sc._row2item)
-    print(self._sc_items_ids)
+    #print(sc._row2item)
+    #print(self._sc_items_ids)
     assert sorted(sc._row2item) == sorted(self._sc_items_ids)
 
 
@@ -197,7 +197,7 @@ class TestScoresComputation(pss_test_base):
     # compute scores
     await sc._compute_scores()
     #
-    print(sc._v_scores)
+    #print(sc._v_scores)
     # check that we have all the expected scores
     assert sc._v_scores.shape[0] == len(self._sc_items_ids)
     # check that we have the correct term ids
@@ -223,7 +223,7 @@ class TestScoresComputation(pss_test_base):
       self._sc_weights_collection
     )
     # query terms
-    print(sc)
+    #print(sc)
     sc_query_terms = sc.getQueryTerms()
     # check that something was saved in the weights place holder
     assert sc_query_terms.sort() == self._sc_query_terms.sort()
