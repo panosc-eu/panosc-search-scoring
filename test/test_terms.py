@@ -18,6 +18,8 @@ from app.routers import terms as termsRouter
 from test.pss_test_base import pss_test_base
 from app.models.terms import TermResponseModel
 
+from app.common.database import COLLECTION_ITEMS, COLLECTION_TF, COLLECTION_IDF
+
 
 class TestTerms(pss_test_base):
 
@@ -45,14 +47,25 @@ class TestTerms(pss_test_base):
   # we need to insert items and weights
   def _populateDatabase(self):
       # first inserts items
-      self._db_collection = self._db_database[itemsRouter.endpointRoute]
+      self._db_collection = self._db_database[COLLECTION_ITEMS]
       self._data = test_data.test_items
-      res = super()._populateDatabase()
+      res1 = super()._populateDatabase()
 
-      # than inserts weights
-      self._db_collection = self._db_database[weightsRouter.endpointRoute]
-      self._data = test_data.test_weights
-      return super()._populateDatabase()
+      # than inserts TF weights
+      self._db_collection = self._db_database[COLLECTION_TF]
+      self._data = test_data.test_weights_tf
+      res2 = super()._populateDatabase()
+
+      # than inserts IDF weights
+      self._db_collection = self._db_database[COLLECTION_IDF]
+      self._data = test_data.test_weights_idf
+      res3 = super()._populateDatabase()
+
+      return {
+        'items' : res1,
+        'tf' : res2,
+        'idf' : res3
+      }
 
 
   def _countGroupAndItems(self,group=None):
@@ -65,7 +78,7 @@ class TestTerms(pss_test_base):
 
     # list items and groups for each term
     dTerms = {}
-    for term in test_data.test_weights.values():
+    for term in test_data.test_weights_tf.values():
       termName = term['term'].lower()
       itemId = term['itemId'].lower()
       itemGroup = itemVsGroup[itemId] 
@@ -76,8 +89,8 @@ class TestTerms(pss_test_base):
       if termName not in dTerms.keys():
         dTerms[termName] = {
           'term' : termName,
-          'itemIds' : set(itemId),
-          'itemGroups' : set(itemGroup) 
+          'itemIds' : set([itemId]),
+          'itemGroups' : set([itemGroup]) 
         }
       else:
         dTerms[termName]['itemIds'].add(itemId)
@@ -103,7 +116,7 @@ class TestTerms(pss_test_base):
   def test_get_terms(self):
     print("test_compute.test_get_terms")
     # insert test weights
-    test_weights = self._populateDatabase()
+    res = self._populateDatabase()
     term_counts = self._countGroupAndItems()
     #
     with TestClient(app.app) as client:

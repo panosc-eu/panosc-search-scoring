@@ -13,11 +13,10 @@ from ..models.terms import TermResponseModel, TermsCountResponseModel
 from .items import endpointRoute as itemCollection
 from ..common.utils import debug
 
+from app.common.database import COLLECTION_ITEMS, COLLECTION_TF, COLLECTION_IDF
+
 # terms endpoint 
 endpointRoute = "terms"
-# terms do not have a collection in the database
-# they are stored in the weights collection
-databaseCollection = "weights"
 
 
 # instantiate the fastapi router object
@@ -27,28 +26,19 @@ router = APIRouter(
 )
   
 def _getAggregationPipeline(
-    itemCollection, 
     group=None,
     count=False 
 ):
   pipeline = [
     {
-      '$lookup' : {
-        'from' : itemCollection,
-        'localField' : 'itemId',
-        'foreignField' : '_id',
-        'as' : 'item'
-      }
-    },
-    {
-      '$unwind' : '$item'
-    },
-    {
       '$project' : {
         '_id' :  0,
+        'id' : { '$toString' : '$_id' },
         'term' : '$term',
+        'timestamp' : '$timestamp',
+        'TF' : '$TF',
         'itemId' : '$itemId',
-        'itemGroup' : '$item.group'
+        'group' : '$group'
       }
     }
   ]
@@ -58,7 +48,7 @@ def _getAggregationPipeline(
     pipeline.append(
       {
         '$match' : {
-          'itemGroup' : group
+          'group' : group
         }
       }
     )
@@ -69,7 +59,7 @@ def _getAggregationPipeline(
       '$group' : {
         '_id' : "$term",
         'numberOfItems' : { '$addToSet' : '$itemId' },
-        'numberOfGroups' : { '$addToSet' : '$itemGroup' }
+        'numberOfGroups' : { '$addToSet' : '$group' }
       } 
     }
   )
@@ -114,10 +104,10 @@ async def get_terms(
 
   # build aggregation pipeline
   pipeline = _getAggregationPipeline(
-    itemCollection,
-    group)
+    group
+  )
 
-  terms = await db[databaseCollection].aggregate(pipeline).to_list(length=None)
+  terms = await db[COLLECTION_TF].aggregate(pipeline).to_list(length=None)
   debug(config,terms)
   return jsonable_encoder(terms, by_alias=False)
 
@@ -139,14 +129,13 @@ async def count_weights(
 
   # build aggregation pipeline
   pipeline = _getAggregationPipeline(
-    itemCollection,
     group,
     True
   )
   debug(config,pipeline)
 
   # retrieve results
-  count = await db[databaseCollection].aggregate(pipeline).to_list(length=None)
+  count = await db[COLLECTION_TF].aggregate(pipeline).to_list(length=None)
   debug(config,count)
   return {
     "count": count[0]['count']

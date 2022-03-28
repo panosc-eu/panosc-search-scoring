@@ -17,6 +17,8 @@ from app.routers import items as itemsRouter
 from test.pss_test_base import pss_test_base
 from app.models.weights import WeightResponseModel
 
+from app.common.database import COLLECTION_ITEMS, COLLECTION_TF, COLLECTION_IDF
+
 
 class TestWeights(pss_test_base):
 
@@ -43,14 +45,25 @@ class TestWeights(pss_test_base):
   # we need to insert items and weights
   def _populateDatabase(self):
       # first inserts items
-      self._db_collection = self._db_database[itemsRouter.endpointRoute]
+      self._db_collection = self._db_database[COLLECTION_ITEMS]
       self._data = test_data.test_items
-      res = super()._populateDatabase()
+      res1 = super()._populateDatabase()
 
-      # than inserts weights
-      self._db_collection = self._db_database[weightsRouter.endpointRoute]
-      self._data = test_data.test_weights
-      return super()._populateDatabase()
+      # than inserts TF weights
+      self._db_collection = self._db_database[COLLECTION_TF]
+      self._data = test_data.test_weights_tf
+      res2 = super()._populateDatabase()
+
+      # than inserts IDF weights
+      self._db_collection = self._db_database[COLLECTION_IDF]
+      self._data = test_data.test_weights_idf
+      res3 = super()._populateDatabase()
+
+      return {
+        'items' : res1,
+        'tf' : res2,
+        'idf' : res3
+      }
 
 
   def _countGroupWeights(self):
@@ -62,7 +75,7 @@ class TestWeights(pss_test_base):
     groups = [
       itemsVsGroups[item['itemId'].lower()] 
       for item 
-      in test_data.test_weights.values()
+      in test_data.test_weights_tf.values()
     ]
     return dict(Counter(groups))
 
@@ -74,7 +87,8 @@ class TestWeights(pss_test_base):
   def test_get_weights(self):
     print("test_compute.test_get_weights")
     # insert test weigths
-    test_weights = self._populateDatabase()
+    res = self._populateDatabase()
+    test_weights = res['tf']
     #
     with TestClient(app.app) as client:
       # request status
@@ -111,7 +125,8 @@ class TestWeights(pss_test_base):
   def test_count_all_weights(self):
     print("test_compute.test_count_all_weights")
     # insert test weigths
-    test_weights = self._populateDatabase()
+    res = self._populateDatabase()
+    test_weights = res['tf']
     # count all items
     with TestClient(app.app) as client:
       # request status

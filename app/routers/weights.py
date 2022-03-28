@@ -11,7 +11,7 @@ from fastapi.encoders import jsonable_encoder
 
 from ..models.weights import WeightResponseModel, WeightModel, WeightsCountResponseModel
 from ..common.utils import getCurrentTimestamp
-from .items import endpointRoute as itemCollection
+from app.common.database import COLLECTION_ITEMS, COLLECTION_TF, COLLECTION_IDF
 
 endpointRoute = "weights"
 
@@ -24,31 +24,19 @@ router = APIRouter(
 
 
 def _getAggregationPipeline(
-    itemCollection, 
     group=None,
     count=False 
 ):
   pipeline = [
-    {
-      '$lookup' : {
-        'from' : itemCollection,
-        'localField' : 'itemId',
-        'foreignField' : '_id',
-        'as' : 'item'
-      }
-    },
-    {
-      '$unwind' : '$item'
-    },
     {
       '$project' : {
         '_id' :  0,
         'id' : { '$toString' : '$_id' },
         'term' : '$term',
         'timestamp' : '$timestamp',
-        'value' : '$value',
+        'TF' : '$TF',
         'itemId' : '$itemId',
-        'itemGroup' : '$item.group'
+        'group' : '$group'
       }
     }
   ]
@@ -58,17 +46,56 @@ def _getAggregationPipeline(
     pipeline.append(
       {
         '$match' : {
-          'itemGroup' : group
+          'group' : group
         }
       }
     )
 
-  if count:
+  if not count:
+    pipeline += [
+      {
+        "$lookup" :{
+          'from' : COLLECTION_IDF,
+          'let' : { 'term' : '$term', 'group' : '$group' },
+          'pipeline' : [
+            {
+              '$match' : {
+                '$expr' : {
+                  '$and' : [
+                    { '$eq' : [ '$term' , '$$term' ]},
+                    { '$eq' : [ '$group' , '$$group' ] }
+                  ]
+                }
+              }
+            }
+          ],
+          'as' : 'idf'
+        }
+      },
+      {
+        '$unwind' : '$idf'
+      },
+      {
+        '$project' : {
+          '_id' :  0,
+          'id' : 1,
+          'term' : 1,
+          'timestamp' : 1,
+          'TF' : 1,
+          'itemId' : 1,
+          'group' : 1,
+          "IDF" : "$idf.IDF",
+          "value" : { "$multiply" : [ "$TF", "$idf.IDF" ]}
+        }
+      }
+    ]
+  else:
     pipeline.append(
       {
         '$count' : 'count'
       }
     )
+
 
   return pipeline
  
@@ -93,10 +120,10 @@ async def get_weights(
 
   # build aggregation pipeline
   pipeline = _getAggregationPipeline(
-    itemCollection,
-    group)
+    group
+  )
 
-  weights = await db[endpointRoute].aggregate(pipeline).to_list(length=None)
+  weights = await db[COLLECTION_TF].aggregate(pipeline).to_list(length=None)
 
   return jsonable_encoder(weights, by_alias=False)
 
@@ -118,13 +145,12 @@ async def count_weights(
 
   # build aggregation pipeline
   pipeline = _getAggregationPipeline(
-    itemCollection,
     group,
     True
   )
 
   # retrieve results
-  count = await db[endpointRoute].aggregate(pipeline).to_list(length=None)
+  count = await db[COLLECTION_TF].aggregate(pipeline).to_list(length=None)
   
   return {
     "count": count[0]["count"] if len(count)>0 else 0

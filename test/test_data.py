@@ -66,88 +66,118 @@ test_weights_timestamp_1 = datetime.datetime(2021, 9, 10, 8, 0, 36, 42400).isofo
 test_weights_timestamp_2 = datetime.datetime(2021, 9, 10, 10, 1, 27, 593000).isoformat()
 test_weights_timestamp_3 = datetime.datetime(2021, 9, 10, 13, 26, 17, 91000).isoformat()
 
-test_weights = {
-  'weight_1_1' : {
+test_weights_tf= {
+  'tf_1_1' : {
     'id' : "3E144A19-496D-43CA-9FDD-4F2F56E7BF57",
-    #'term' : 'information',
     'term' : 'inform',
     'itemId' : '24CC73BD-3A88-4AD7-B9B4-5C01AEC2456E',
-    'itemGroup': "group_1",
+    'group': "group_1",
     'timestamp' : test_weights_timestamp_1,
-    'value' : 0.11
+    'TF' : 0.11
   },
-  'weight_1_2' : {
+  'tf_1_2' : {
     'id' : "1BFDBDAC-ECA6-44BB-AC0D-73D512978D9E",
-    #'term' : 'information',
     'term' : 'inform',
     'itemId' : '37BBB678-4E40-43AC-998D-454E667AEDBF',
-    'itemGroup': "group_1",
+    'group': "group_1",
     'timestamp' : test_weights_timestamp_1,
-    'value' : 0.12
+    'TF' : 0.12
   },
-  'weight_1_3' : {
+  'tf_1_3' : {
     'id' : "2234CD79-8CD9-4809-9354-81A70DCD7466",
-    #'term' : 'information',
     'term' : 'inform',
     'itemId' : 'F2FC84A3-9A0A-48A9-87EF-07C752C8E5B4',
-    'itemGroup': "group_1",
+    'group': "group_1",
     'timestamp' : test_weights_timestamp_1,
-    'value' : 0.13
+    'TF' : 0.13
   },
-  'weight_1_4' : {
+  'tf_1_4' : {
     'id' : "2260E18F-8CA8-4414-94A3-986A42B7E38C",
-    #'term' : 'information',
     'term' : 'inform',
     'itemId' : '4D983232-8F13-4AD0-9933-51348379497D',
-    'itemGroup': "default",
+    'group': "default",
     'timestamp' : test_weights_timestamp_1,
-    'value' : 0.14
+    'TF' : 0.14
   },
-  'weight_1_5' : {
+  'tf_1_5' : {
     'id' : "BB6DB517-9392-4500-BDC5-3B3C0314F607",
-    #'term' : 'information',
     'term' : 'inform',
     'itemId' : 'A08C952D-4888-424F-B115-B5BCAC821B67',
-    'itemGroup': "group_1",
+    'group': "group_1",
     'timestamp' : test_weights_timestamp_1,
-    'value' : 0.15
+    'TF' : 0.15
   },
-  'weight_2_1' : {
+  'tf_2_1' : {
     'id' : "4C75587E-B620-4930-88E6-E0F75E591E40",
     'term' : 'metadata',
     'itemId' : '37BBB678-4E40-43AC-998D-454E667AEDBF',
-    'itemGroup': "group_1",
+    'group': "group_1",
     'timestamp' : test_weights_timestamp_2,
-    'value' : 0.21
+    'TF' : 0.21
   },
-  'weight_2_2' : {
+  'tf_2_2' : {
     'id' : "F2F4E7E0-A080-49C4-B481-F0F536BB8D59",
     'term' : 'metadata',
     'itemId' : '4D983232-8F13-4AD0-9933-51348379497D',
-    'itemGroup': "default",
+    'group': "default",
     'timestamp' : test_weights_timestamp_2,
-    'value' : 0.22
+    'TF' : 0.22
   },
-  'weight_3_1' : {
+  'tf_3_1' : {
     'id' : "4F9319CB-C5D9-49B5-8707-57DFC445AF35",
-    #'term' : 'retrieval',
     'term' : 'retriev',
     'itemId' : '24CC73BD-3A88-4AD7-B9B4-5C01AEC2456E',
-    'itemGroup': "group_1",
+    'group': "group_1",
     'timestamp' : test_weights_timestamp_3,
-    'value' : 0.31
+    'TF' : 0.31
   },
-  'weight_3_2' : {
+  'tf_3_2' : {
     'id' : "F7019D62-CEC7-4CEC-8778-5D3DABD50649",
-    #'term' : 'retrieval',
     'term' : 'retriev',
     'itemId' : '37BBB678-4E40-43AC-998D-454E667AEDBF',
-    'itemGroup': "group_1",
+    'group': "group_1",
     'timestamp' : test_weights_timestamp_3,
-    'value' : 0.32
+    'TF' : 0.32
   },
 }
 
+test_weights_idf= {
+  'idf_1_1' : {
+    'id' : "3E144A19-496D-43CA-9FDD-4F2F56E7BF57",
+    'term' : 'inform',
+    'group': "group_1",
+    'timestamp' : test_weights_timestamp_1,
+    'IDF' : 0.2
+  },
+  'idf_1_2' : {
+    'id' : "2260E18F-8CA8-4414-94A3-986A42B7E38C",
+    'term' : 'inform',
+    'group': "default",
+    'timestamp' : test_weights_timestamp_1,
+    'IDF' : 0.4
+  },
+  'idf_2_1' : {
+    'id' : "4C75587E-B620-4930-88E6-E0F75E591E40",
+    'term' : 'metadata',
+    'group': "group_1",
+    'timestamp' : test_weights_timestamp_2,
+    'IDF' : 0.6
+  },
+  'idf_2_2' : {
+    'id' : "F2F4E7E0-A080-49C4-B481-F0F536BB8D59",
+    'term' : 'metadata',
+    'group': "default",
+    'timestamp' : test_weights_timestamp_2,
+    'IDF' : 0.8
+  },
+  'tf_3_1' : {
+    'id' : "4F9319CB-C5D9-49B5-8707-57DFC445AF35",
+    'term' : 'retriev',
+    'group': "group_1",
+    'timestamp' : test_weights_timestamp_3,
+    'IDF' : 1.0
+  }
+}
 
 test_scores_started = datetime.datetime(2021, 9, 10, 8, 0, 36, 424000)
 test_scores_ended = datetime.datetime(2021, 9, 10, 10, 1, 27, 593000)
