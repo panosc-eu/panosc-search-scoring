@@ -69,7 +69,7 @@ class Config:
           self.config[var] = env_value
 
     # set root information
-    for info in ["application", "description", "version", "deployment"]:
+    for info in ["application", "description", "version", "deployment", "debug"]:
       self.rootInfo[info] = self.config[info]
     self.rootInfo["started-time"] = utils.getCurrentIsoTimestamp(self.tsStarted)
     
