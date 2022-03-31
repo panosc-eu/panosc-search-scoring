@@ -47,6 +47,7 @@ async def get_items(req: Request, limit: int = LIMIT_DEFAULT, offset: int = 0):
   config = req.app.state.config
   db = req.app.state.db_database
   
+  debug(config,endpointRoute)
   # pipeline
   pipeline = [
     {

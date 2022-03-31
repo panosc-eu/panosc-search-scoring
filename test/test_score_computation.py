@@ -3,6 +3,7 @@
 # notes: test the weight computation
 #  
 
+from app.common.database import COLLECTION_TF, COLLECTION_IDF
 from app.models.weights import WeightModel
 from json.decoder import JSONDecodeError
 from fastapi.testclient import TestClient
@@ -32,7 +33,8 @@ class TestScoresComputation(pss_test_base):
   _db_collection_name = weightsRouter.endpointRoute
   # define collection we want to work with
   _endpoint_name = scoresRouter.endpointRoute
-  _data = list(test_data.test_weights.values())
+  #_data = list(test_data.test_weights.values())
+  _data = None
 
 
   # properties needed to test class instance
@@ -40,10 +42,12 @@ class TestScoresComputation(pss_test_base):
   _sc_score_request_dict = None
   _sc_score_request_model = None
   _sc_config = None
-  _sc_database = None
+  _sc_database = None  
+  _sc_tf_collection = None 
+  _sc_idf_collection = None 
   #_sc_items_collection = None
   #_sc_status_collection = None
-  _sc_weights_collection = None 
+  #_sc_weights_collection = None 
   #_wc_groups_list = None
   #_wc_selected_group = None
   #_wc_group_items = None
@@ -59,7 +63,20 @@ class TestScoresComputation(pss_test_base):
       item['itemId'] = item['itemId'].lower()
     return item
   
+  # overload populate database 
+  # we need to insert items and weights
+  def _populateDatabase(self):
+    # insert tf
+    self._db_collection = self._db_database[COLLECTION_TF]
+    self._data = test_data.test_weights_tf
+    res1 = super()._populateDatabase(itemKey=self._initial_status)
 
+    # insert idf
+    self._db_collection = self._db_database[COLLECTION_IDF]
+    self._data = test_data.test_weights_idf
+    res2 = super()._populateDatabase()
+
+    return res2
   #
   # set up environment for testing class methods
   def _initialize_environment_for_class_test(self):

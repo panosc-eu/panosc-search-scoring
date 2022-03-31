@@ -12,7 +12,7 @@ from ..common.utils import debug
 from app.common.database import COLLECTION_TF, COLLECTION_IDF
 
 
-QUERY_SINGLE_TERM_MAX_SCORE = 0.9
+QUERY_SINGLE_TERM_MAX_SCORE = 0.90
 
 class SC:
 
@@ -134,11 +134,6 @@ class SC:
     list_cursor = await self._tf_coll.aggregate(self._db_pipeline) \
       .to_list(length=None)
 
-    # load all selected items
-    self._terms_update = list(set(
-      self._terms_update + [term for term in list_cursor]
-    )) 
-
     debug(self._config,list_cursor)
     weights = [item for item in list_cursor]
     debug(self._config,weights)
@@ -146,9 +141,7 @@ class SC:
     # prepare columns and rows vectors
     # they allow us to go from column index to term
     # and from row to index
-    self._col2term = sorted(list(
-      set([item['term'] for item in weights] + self._query_terms)
-    ))
+    self._col2term = sorted(list(set([item['term'] for item in weights] + self._query_terms)))
     self._term2col = { t:c for c,t in enumerate(self._col2term) }
     self._row2item = sorted(list(set([[item['group'], item['itemId']] for item in weights])))
     self._item2row = { i:r for r,i in enumerate(self._row2item) }
@@ -162,7 +155,7 @@ class SC:
     matrixCol = []
     for weight in weights:
       matrixData.append(weight['weight'])
-      matrixRow.append(self._item2row[weight['itemId']])
+      matrixRow.append(self._item2row[(weight['group'],weight['itemId'])])
       matrixCol.append(self._term2col[weight['term']])
 
     self._m_weights = coo_matrix((matrixData,(matrixRow,matrixCol)))
@@ -178,7 +171,7 @@ class SC:
     # check how many terms are present in the query
     if (len(self._query_terms) > 1):
 
-      # prepare matrix with with query terms. All weights are set to 1
+      # prepare matrix with query terms. All weights are set to 1
       matrixData = []
       matrixCol = []
       for term in self._query_terms:
@@ -203,8 +196,8 @@ class SC:
     # sort elements from the most relevant to the least one
     self._sort_results()
 
-    print(self._v_scores)
-    print(self._sorted_scores)
+    #print(self._v_scores)
+    #print(self._sorted_scores)
 
     debug(self._config,self._v_scores)
 
@@ -212,18 +205,16 @@ class SC:
   def _sort_results(self):
     # internal function to order the scores from the most relevant to the least relevant
     (rows,cols) = self._v_scores.nonzero()
-    self._sorted_scores = [
-      e1[0]
-      for e1 
-      in sorted(
-        zip(
-          rows,
-          self._v_scores.data
-        ),
-        key = lambda e2: e2[1],
-        reverse=True
-      )
-    ]
+    self._sorted_scores = sorted(
+      [
+        (row, self._v_scores[row,0])
+        for row
+        in rows
+      ],
+      key = lambda e: e[1],
+      reverse=True
+    )
+  
 
 
   def getQueryTerms(self):
@@ -231,10 +222,7 @@ class SC:
 
   
   def getScores(self):
-    # extract data and position from sparse matrix
-    data = self._v_scores.data
-    (rows,cols) = self._v_scores.nonzero()
-
+    
     # check if we have a limit
     limit = len(self._sorted_scores)
     if 'limit' in self._request.keys() and self._request['limit'] > 0:
@@ -242,10 +230,11 @@ class SC:
 
     return [
       {
-        'itemId': self._row2item[rows[i]],
-        'score' : data[i]
+        'itemId': self._row2item[row][1],
+        'group' : self._row2item[row][0],
+        'score' : self._v_scores[row,0]
       }
-      for i
+      for row
       in self._sorted_scores[0:limit]
     ]
 
