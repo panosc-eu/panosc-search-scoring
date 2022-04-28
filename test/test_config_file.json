@@ -5,5 +5,6 @@
   "application" : "PSS",
   "description" : "PaNOSC search scoring. Test run",
   "version" : "vTest",
-  "waitToStartCompute" : 5
+  "waitToStartCompute" : 5,
+  "debug" : 1
 }

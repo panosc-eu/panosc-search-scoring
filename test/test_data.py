@@ -257,18 +257,22 @@ test_scores = {
 test_scores_computation = [
   {
     'itemId' : '37bbb678-4e40-43ac-998d-454e667aedbf',
-    'score' : 0.910366
+    'group' : 'group_1',
+    'score' : 0.758011
   },
   {
     'itemId' : '24cc73bd-3a88-4ad7-b9b4-5c01aec2456e',
-    'score' : 0.902861
+    'group' : 'group_1',
+    'score' : 0.755389
   },
   {
     'itemId' : '4d983232-8f13-4ad0-9933-51348379497d',
+    'group' : 'default',
     'score' : 0.707107
   },
   {
     'itemId' : 'a08c952d-4888-424f-b115-b5bcac821b67',
+    'group' : 'group_1',
     'score' : 0.707107
   }
 ]

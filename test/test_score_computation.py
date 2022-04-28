@@ -69,7 +69,7 @@ class TestScoresComputation(pss_test_base):
     # insert tf
     self._db_collection = self._db_database[COLLECTION_TF]
     self._data = test_data.test_weights_tf
-    res1 = super()._populateDatabase(itemKey=self._initial_status)
+    res1 = super()._populateDatabase()
 
     # insert idf
     self._db_collection = self._db_database[COLLECTION_IDF]
@@ -87,14 +87,17 @@ class TestScoresComputation(pss_test_base):
     self._sc_query_terms = ['retriev', 'inform']
     # item ids
     self._sc_items_ids = [
-      item['itemId'].lower() 
+      (
+        item['group'],
+        item['itemId'].lower() 
+      )
       for item 
       in test_data.test_scores_computation
     ]
     # create a score request as dictionary
     self._sc_score_request_dict = {
       'query': self._sc_query,
-      'itemIds': self._sc_items_ids,
+      'itemIds': [i[1] for i in self._sc_items_ids],
       'group' : "",
       'limit' : -1
     }
@@ -106,10 +109,9 @@ class TestScoresComputation(pss_test_base):
     # instantiate database and collections
     db_client = AsyncIOMotorClient(self._sc_config.mongodb_url)
     self._sc_database = db_client[self._sc_config.database]
-    #self._wc_items_collection = self._wc_database[itemsRouter.endpointRoute]
-    #self._wc_status_collection = self._wc_database[computeRouter.endpointRoute]
-    self._sc_weights_collection = self._sc_database[weightsRouter.endpointRoute]
-    # obtains list of groups from test data
+    self._sc_tf_collection = self._sc_database[COLLECTION_TF]
+    self._sc_idf_collection = self._sc_database[COLLECTION_IDF]
+    #  obtains list of groups from test data
     #self._wc_groups_list = list(set([
       #item['group'] if 'group' in item.keys() else 'default'
       #for item 
@@ -142,12 +144,14 @@ class TestScoresComputation(pss_test_base):
       self._sc_config,
       self._sc_score_request_dict,
       self._sc_database, 
-      self._sc_weights_collection
+      self._sc_tf_collection,
+      self._sc_idf_collection
     )
     # test properties
     assert sc._request == self._sc_score_request_dict
     assert sc._db == self._sc_database
-    assert sc._weights_coll == self._sc_weights_collection 
+    assert sc._tf_coll == self._sc_tf_collection 
+    assert sc._idf_coll == self._sc_idf_collection 
 
 
   # extract terms from query
@@ -161,7 +165,8 @@ class TestScoresComputation(pss_test_base):
       self._sc_config,
       self._sc_score_request_dict,
       self._sc_database, 
-      self._sc_weights_collection
+      self._sc_tf_collection,
+      self._sc_idf_collection
     )
     # extract query terms
     #print(sc)
@@ -182,7 +187,8 @@ class TestScoresComputation(pss_test_base):
       self._sc_config,
       self._sc_score_request_dict,
       self._sc_database, 
-      self._sc_weights_collection
+      self._sc_tf_collection,
+      self._sc_idf_collection
     )
     # extract query terms
     await sc._extract_query_terms()
@@ -206,7 +212,8 @@ class TestScoresComputation(pss_test_base):
       self._sc_config,
       self._sc_score_request_dict,
       self._sc_database, 
-      self._sc_weights_collection
+      self._sc_tf_collection,
+      self._sc_idf_collection
     )
     # prepare for computing score
     await sc._extract_query_terms()
@@ -222,7 +229,11 @@ class TestScoresComputation(pss_test_base):
     # check the individual scores
     sc_v_scores = sc._v_scores
     for item in test_data.test_scores_computation:
-      assert round(sc_v_scores[sc._item2row[item['itemId']],0],6) == item['score']
+      v = round(sc_v_scores[
+        sc._item2row[
+          (item['group'],item['itemId'])
+        ],0],6)
+      assert v == item['score']
 
 
 
@@ -237,7 +248,8 @@ class TestScoresComputation(pss_test_base):
       self._sc_config,
       self._sc_score_request_dict,
       self._sc_database, 
-      self._sc_weights_collection
+      self._sc_tf_collection,
+      self._sc_idf_collection
     )
     # query terms
     #print(sc)

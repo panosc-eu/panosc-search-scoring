@@ -115,6 +115,9 @@ class SC:
         }
       },
       {
+        '$unwind' : '$idf'
+      },
+      {
         "$project" : {
           "_id" : 0,
           "term" : 1,
@@ -143,7 +146,7 @@ class SC:
     # and from row to index
     self._col2term = sorted(list(set([item['term'] for item in weights] + self._query_terms)))
     self._term2col = { t:c for c,t in enumerate(self._col2term) }
-    self._row2item = sorted(list(set([[item['group'], item['itemId']] for item in weights])))
+    self._row2item = sorted(list(set([(item['group'], item['itemId']) for item in weights])))
     self._item2row = { i:r for r,i in enumerate(self._row2item) }
 
     # save weights in sparse matrix.
@@ -230,9 +233,9 @@ class SC:
 
     return [
       {
-        'itemId': self._row2item[row][1],
-        'group' : self._row2item[row][0],
-        'score' : self._v_scores[row,0]
+        'itemId': self._row2item[row[0]][1],
+        'group' : self._row2item[row[0]][0],
+        'score' : self._v_scores[row[0],0]
       }
       for row
       in self._sorted_scores[0:limit]
