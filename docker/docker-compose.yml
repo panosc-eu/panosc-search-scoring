@@ -7,6 +7,7 @@ services:
       PSS_MONGODB_URL: mongodb://pss-db:27017 
       PSS_DATABASE: pss
       PSS_PORT: 8000
+      PSS_DEPLOYMENT: "Local docker compose testing"
     depends_on:
       - pss-db
     ports:
