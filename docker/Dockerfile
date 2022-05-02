@@ -15,8 +15,8 @@ COPY docker/pss_config.json /app/config/pss_config.json
 # copy script to download stopwords
 COPY download_nltk_stopwords.py /app/.
 # copy docker cmd script
-COPY docker_cmd.bash /.
-RUN chmod +x /docker_cmd.bash
+#COPY docker_cmd.bash /.
+#RUN chmod +x /docker_cmd.bash
 
 # create the conda environment
 RUN conda env create -f /app/conda_PSS_env.yml -n PSS
