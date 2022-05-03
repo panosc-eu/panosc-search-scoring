@@ -3,8 +3,9 @@
 #
 
 # importing libraries
-from fastapi import APIRouter, Request, Body
+from fastapi import APIRouter, Request, Body, HTTPException
 from fastapi.encoders import jsonable_encoder
+import json
 
 from app import common
 
@@ -40,27 +41,39 @@ async def get_scores(req: Request, scoreRequest = Body(...)):
   config = req.app.state.config
   db = req.app.state.db_database
 
-  debug(config,ScoreRequestModel(**scoreRequest))
+  try: 
+    # check if we get a string in input. 
+    # If that's the case, it will try to convert it to a python data type
+    if type(scoreRequest) is str or type(scoreRequest) is bytes:
+      debug(config,"Converting input to python type")
+      scoreRequest = json.loads(scoreRequest)
 
-  debug(config,type(SC))
-  # compute the scores
-  oSC = await SC.runWorkflow(config,scoreRequest,db,db[weightsCollection])
-  debug(config,oSC)
+    debug(config,ScoreRequestModel(**scoreRequest))
+
+    debug(config,type(SC))
+    # compute the scores
+    oSC = await SC.runWorkflow(config,scoreRequest,db,db[weightsCollection])
+    debug(config,oSC)
   
-  # check weight computation status
-  computeStatus = await db[computeCollection].find({}).to_list(None)
-  computeInProgress = computeStatus[0]['inProgress'] if len(computeStatus) > 0 else False
+    # check weight computation status
+    computeStatus = await db[computeCollection].find({}).to_list(None)
+    computeInProgress = computeStatus[0]['inProgress'] if len(computeStatus) > 0 else False
 
-  return {
-    'request': jsonable_encoder(ScoreRequestModel(**scoreRequest)),
-    'query' : {
-      'query' : scoreRequest['query'],
-      'terms' : oSC.getQueryTerms()
-    },
-    'scores' : oSC.getScores(),
-    'dimension' : oSC.getScoresLength(),
-    'computeInProgress' : computeInProgress,
-    'started' : oSC.started,
-    'ended' : oSC.ended
-  }
-
+    return {
+      'request': jsonable_encoder(ScoreRequestModel(**scoreRequest)),
+      'query' : {
+        'query' : scoreRequest['query'],
+        'terms' : oSC.getQueryTerms()
+      },
+      'scores' : oSC.getScores(),
+      'dimension' : oSC.getScoresLength(),
+      'computeInProgress' : computeInProgress,
+      'started' : oSC.started,
+      'ended' : oSC.ended
+    }
+  
+  except Exception as e:
+    raise HTTPException(
+      status_code=400,
+      detail="An exception of type {0} occurred. Arguments:\n{1!r}".format(type(e).__name__, e.args)
+    )

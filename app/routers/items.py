@@ -167,17 +167,18 @@ async def new_items(req: Request, inputItems = Body(...)): #List[ItemCreateModel
     else:
       raise HTTPException(status_code=422,detail="Invalid data")
 
+    return {
+      'success' : True,
+      'items_created' : len(itemsId),
+      'items_ids' : itemsId
+    }
+    
   except Exception as e:
     raise HTTPException(
       status_code=400,
       detail="An exception of type {0} occurred. Arguments:\n{1!r}".format(type(e).__name__, e.args)
     )
 
-  return {
-    'success' : True,
-    'items_created' : len(itemsId),
-    'items_ids' : itemsId
-  }
 
 
 # Route DELETE:/items/<id>
