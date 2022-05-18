@@ -15,7 +15,7 @@ services:
     networks:
       - pss-internal
   pss-db:
-    image: bitnami/mongodb:latest
+    image: bitnami/mongodb:4.4.14
     networks:
       - pss-internal
 #    ports:
