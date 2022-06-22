@@ -7,8 +7,8 @@ echo ""
 
 #
 # check that we got two arguments in input
-if [ "$#" -ne 2 ] && [ "$#" -ne 3 ]; then
-    echo "Usage ${SCRIPT_NAME} <account> (<tag>)"
+if [ "$#" -ne 0 ] && [ "$#" -ne 1 ]; then
+    echo "Usage ${SCRIPT_NAME} (<tag>)"
     echo ""
     echo " prepare a docker image and push it to the github container repository"
     echo " The image will be named:"
@@ -44,6 +44,9 @@ releaseContainerRepo="ghcr.io/panosc-eu/${packageName}"
 # retrieve latest git commit tag
 if [ "-${gitTag}-" == "--" ]; then 
     gitTag=$(git describe --tags --abbrev=0)
+else
+    # check out on the specific commit or tag
+    git checkout ${gitTag}
 fi
 
 
