@@ -19,6 +19,12 @@ For more information regarding usage, domain knowledge and API, please review th
 - [API](docs/md/PaNOSC_Federated_Search_Results_Scoring_API.md)
 
 
+## Docker images repository
+
+The current repository for the docker images is located on GitHub.
+The URL is: 
+  - https://github.com/panosc-eu/panosc-search-scoring/pkgs/container/panosc-search-scoring
+
 
 
 
