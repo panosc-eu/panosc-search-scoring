@@ -1,0 +1,32 @@
+version: "3.9"
+services:
+
+  pss-api-unittest:
+
+    build:
+      context: ../.
+      dockerfile: docker/Dockerfile_unittest
+    image: "panosc-search-scoring-unittest"
+
+    container_name: "panosc-search-scoring-unittest"
+    environment:
+      PSS_DEBUG: 0
+      PSS_MONGODB_URL: mongodb://pss-db:27017
+      PSS_DATABASE: pss_test
+      PSS_PORT: 8000
+      PSS_VERSION: "vTest"
+      PSS_DEPLOYMENT: "Local scoring-api docker unittest"
+    depends_on:
+      - pss-db
+    networks:
+      - pss-internal
+
+  pss-db:
+    image: bitnami/mongodb:4.4.14
+    networks:
+      - pss-internal
+    #ports:
+    #  - 27017:27017
+
+networks:
+  pss-internal:

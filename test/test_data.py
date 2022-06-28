@@ -1,7 +1,9 @@
 import datetime
+from app.common.config import Config
 
+conf = Config()
 # database connection
-test_database_uri = "mongodb://127.0.0.1:27017"
+test_database_uri = conf.mongodb_url # "mongodb://127.0.0.1:27017"
 test_database = "pss_test"
 
 # entries to use in testing the items endpoints
