@@ -74,7 +74,7 @@ if [[ "$(docker images -q ${localContainerImage} 2> /dev/null)" != "" ]]; then
     echo ""
 fi
 echo "Creating conf file with version"
-sed "s/<VERSION>/${dockerTag}/" docker/config_template.json > ./docker/pss_config.json
+sed "s/<VERSION>/${releaseContainerTag}/" docker/config_template.json > ./docker/pss_config.json
 echo "Creating image"
 docker build -t ${localContainerImage} -f ./docker/Dockerfile .
 #echo "Removing config file"
