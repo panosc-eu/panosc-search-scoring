@@ -180,7 +180,8 @@ class SC:
     # internal function to order the scores from the most relevant to the least relevant
     (rows,cols) = self._v_scores.nonzero()
     self._sorted_scores = [
-      e1[0]
+      #e1[0]
+      e1
       for e1 
       in sorted(
         zip(
@@ -215,11 +216,11 @@ class SC:
 
       scores = [
         {
-          'itemId': self._row2item[rows[i]],
+          'itemId': self._row2item[self._sorted_scores[i][0]],
           'score' : data[i]
         }
         for i
-        in self._sorted_scores[0:limit]
+        in range(limit)
       ]
 
     elif len(self._row2item) > 0:
