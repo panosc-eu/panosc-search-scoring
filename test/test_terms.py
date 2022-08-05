@@ -155,7 +155,7 @@ class TestTerms(pss_test_base):
       assert jsonResponse["count"] == len(term_counts)
 
 
-  # count weights in group 1
+  # count terms in group 1
   def test_count_group_terms(self):
     print("test_compute.test_count_group_weights")
     # insert test weigths
@@ -171,4 +171,18 @@ class TestTerms(pss_test_base):
       assert response.status_code == 200
       jsonResponse = response.json()
       assert jsonResponse["count"] == len(term_counts)
+
+  # count terms in empty dataset
+  def test_count_group_terms(self):
+    print("test_compute.test_count_weights_in_empty_database")
+    # count terms
+    with TestClient(app.app) as client:
+      # request status
+      response = client.get(
+        self._endpoint_url + '/count'
+      )
+      
+      assert response.status_code == 200
+      jsonResponse = response.json()
+      assert jsonResponse["count"] == 0
 

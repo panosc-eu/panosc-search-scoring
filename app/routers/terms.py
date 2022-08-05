@@ -3,6 +3,7 @@
 #
 
 # importing libraries
+from numpy import array
 from fastapi import APIRouter, Request
 from typing import List, Optional
 
@@ -148,6 +149,10 @@ async def count_weights(
   # retrieve results
   count = await db[databaseCollection].aggregate(pipeline).to_list(length=None)
   debug(config,count)
-  return {
-    "count": count[0]['count']
-  }
+  output = { "count" : 0 }
+  try:
+    output['count'] = count[0]['count']
+  except:
+    debug(config,"Structure returned by database does not contain terms' count")
+
+  return output
