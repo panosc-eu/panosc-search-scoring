@@ -217,7 +217,7 @@ class SC:
       scores = [
         {
           'itemId': self._row2item[self._sorted_scores[i][0]],
-          'score' : data[i]
+          'score' : data[self._sorted_scores[i][0]]
         }
         for i
         in range(limit)
