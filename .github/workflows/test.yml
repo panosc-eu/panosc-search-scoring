@@ -13,4 +13,6 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Test
-        run: sh run_tests_in_terminal.bash
+        run: | 
+          mkdir config
+          sh run_tests_in_terminal.bash
