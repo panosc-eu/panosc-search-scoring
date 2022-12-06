@@ -36,12 +36,13 @@ jobs:
         run: | 
           pwd
           ls ./docker
-          cp -a ./docker/. ./
+          mv ./docker/. ./
           ls .
         
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
+          file: Dockefile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
             
