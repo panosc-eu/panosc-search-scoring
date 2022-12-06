@@ -32,10 +32,12 @@ jobs:
           flavor: latest=true # adds :latest tag to outputs.tags
           tags: type=sha,format=long,prefix= # adds :<sha> tag to outputs.tags
         
+      - name: Place Dockerfile
+        run: cp -a ./docker/. ./
+        
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          file: ./docker/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
             
