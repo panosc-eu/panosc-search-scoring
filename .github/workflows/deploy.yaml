@@ -4,7 +4,6 @@ on:
   push:
     branches: 
     - master
-    - uniform-deployment-scripts
 
 jobs:
   deploy:
@@ -32,17 +31,10 @@ jobs:
           flavor: latest=true # adds :latest tag to outputs.tags
           tags: type=sha,format=long,prefix= # adds :<sha> tag to outputs.tags
         
-      - name: Place Dockerfile
-        run: | 
-          pwd
-          ls ./docker
-          cp -r ./docker/* ./
-          ls .
-        
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          file: Dockefile
+          file: docker/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
             
