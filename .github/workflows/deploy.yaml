@@ -33,7 +33,10 @@ jobs:
           tags: type=sha,format=long,prefix= # adds :<sha> tag to outputs.tags
         
       - name: Place Dockerfile
-        run: cp -a ./docker/. ./
+        run: | 
+          ls ./docker
+          cp -a ./docker/. ./
+          ls .
         
       - name: Build and push
         uses: docker/build-push-action@v3
