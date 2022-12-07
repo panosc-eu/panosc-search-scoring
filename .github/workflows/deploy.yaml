@@ -4,6 +4,7 @@ on:
   push:
     branches: 
     - master
+    - uniform-deployment-scripts
 
 jobs:
   deploy:
@@ -30,6 +31,9 @@ jobs:
           images: ghcr.io/${{ github.repository }}
           flavor: latest=true # adds :latest tag to outputs.tags
           tags: type=sha,format=long,prefix= # adds :<sha> tag to outputs.tags
+          
+      - name: Generate version JSON
+        run: sed "s/<VERSION>/${{ github.sha }}/" docker/config_template.json > ./docker/pss_config.json
         
       - name: Build and push
         uses: docker/build-push-action@v3
