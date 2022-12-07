@@ -3,14 +3,16 @@
 #
 # use python3.9 container
 FROM python:3.9
+ARG VERSION
 
 # create app folder
 RUN mkdir /app
 # copy our application
 COPY main.py /app/main.py
 COPY app /app/app
-# copy config file with version
-COPY docker/pss_config.json /app/config/pss_config.json
+# create version file
+RUN mkdir /app/config
+RUN echo "{\n\t\"version\" : \"${VERSION}\"\n}" > /app/config/pss_config.json
 # copy script to download stopwords
 COPY download_nltk_stopwords.py /app/.
 # copy python requirements (for api and test)
