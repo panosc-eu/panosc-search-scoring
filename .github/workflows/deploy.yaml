@@ -31,9 +31,6 @@ jobs:
           images: ghcr.io/${{ github.repository }}
           flavor: latest=true # adds :latest tag to outputs.tags
           tags: type=sha,format=long,prefix= # adds :<sha> tag to outputs.tags
-          
-      - name: Generate version JSON
-        run: sed "s/<VERSION>/${{ github.sha }}/" docker/config_template.json > pss_config.json
         
       - name: Build and push
         uses: docker/build-push-action@v3
@@ -41,6 +38,8 @@ jobs:
           file: docker/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            VERSION=${{ github.sha }}
             
       - name: Trigger ESS pipeline
         uses: swapActions/trigger-swap-deployment@v1
