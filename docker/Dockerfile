@@ -10,6 +10,8 @@ RUN mkdir /app
 COPY main.py /app/main.py
 COPY app /app/app
 # copy config file with version
+RUN ls docker
+RUN cat docker/pss_config.json
 COPY docker/pss_config.json /app/config/pss_config.json
 # copy script to download stopwords
 COPY download_nltk_stopwords.py /app/.
