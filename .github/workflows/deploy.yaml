@@ -36,7 +36,7 @@ jobs:
         run: sed "s/<VERSION>/${{ github.sha }}/" docker/config_template.json > ./docker/pss_config.json
         
       - name: list 
-        run: ls
+        run: ls docker
         
       - name: Build and push
         uses: docker/build-push-action@v3
