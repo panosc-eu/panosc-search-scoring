@@ -33,13 +33,7 @@ jobs:
           tags: type=sha,format=long,prefix= # adds :<sha> tag to outputs.tags
           
       - name: Generate version JSON
-        run: sed "s/<VERSION>/${{ github.sha }}/" docker/config_template.json > docker/pss_config.json
-        
-      - name: list 
-        run: ls docker
-        
-      - name: cat contents 
-        run: cat docker/pss_config.json
+        run: sed "s/<VERSION>/${{ github.sha }}/" docker/config_template.json > app/config/pss_config.json
         
       - name: Build and push
         uses: docker/build-push-action@v3
