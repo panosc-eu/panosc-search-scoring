@@ -35,6 +35,9 @@ jobs:
       - name: Generate version JSON
         run: sed "s/<VERSION>/${{ github.sha }}/" docker/config_template.json > ./docker/pss_config.json
         
+      - name: list 
+        run: ls
+        
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
