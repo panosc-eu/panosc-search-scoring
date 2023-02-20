@@ -3,10 +3,11 @@
 #
 
 # importing libraries
-from fastapi import APIRouter, Request, Response, status, Body
+from fastapi import APIRouter, Request, Response, status, Body, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from typing import List
+import json
 
 #from starlette import responses
 #from asgiref.sync import sync_to_async
@@ -158,33 +159,41 @@ async def new_items(req: Request, inputItems = Body(...)): #List[ItemCreateModel
   db = req.app.state.db_database
   
   debug(config,inputItems)
-  # check if we need to insert one or many
-  if type(inputItems) is dict:
-    # we have only one item to insert
-    modeledItems = jsonable_encoder([ItemModel(**extract_item_terms(inputItems))], by_alias=True)
-  elif type(inputItems) is list:
-    # we assume that we have many items to insert
-    modeledItems = jsonable_encoder([ItemModel(**extract_item_terms(item)) for item in inputItems], by_alias=True)
-  else:
-    raise Exception("Invalid data")
+  
+  try: 
+    # check if we get a string in input. 
+    # If that's the case, it will try to convert it to a python data type
+    if type(inputItems) is str:
+      debug(config,"Converting input to python type")
+      inputItems = json.loads(inputItems)
 
-  # perrform insert
-  results = await db[endpointRoute].insert_many(modeledItems)
-  itemsId = results.inserted_ids
+    # check if we need to insert one or many
+    writtenItems = 0
+    if type(inputItems) is dict:
+      # we have only one item to insert
+      modeledItem = jsonable_encoder(ItemModel(**inputItems), by_alias=True)
+      results = await db[endpointRoute].insert_one(modeledItem)
+      itemsId = [results.inserted_id] if (type(results.inserted_id) is str and results.inserted_id) else []
+    elif type(inputItems) is list:
+      # we assume that we have many items to insert
+      modeledItems = jsonable_encoder([ItemModel(**item) for item in inputItems], by_alias=True)
+      results = await db[endpointRoute].insert_many(modeledItems)
+      itemsId = results.inserted_ids
+    else:
+      raise HTTPException(status_code=422,detail="Invalid data")
 
-  # if incremental is enabled, computes weights components
-  if config.incrementalWeightsComputation:
-    WC.runIncrementalWorkflow(
-      config,
-      db,
-      new_items=modeledItems
+    return {
+      'success' : True,
+      'items_created' : len(itemsId),
+      'items_ids' : itemsId
+    }
+    
+  except Exception as e:
+    raise HTTPException(
+      status_code=400,
+      detail="An exception of type {0} occurred. Arguments:\n{1!r}".format(type(e).__name__, e.args)
     )
 
-  return {
-    'success' : True,
-    'items_created' : len(itemsId),
-    'items_ids' : itemsId
-  }
 
 
 # Route DELETE:/items/<id>

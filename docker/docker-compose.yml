@@ -1,12 +1,13 @@
 version: "3.9"
 services:
   pss-api:
-    image: nitrosx71/panosc-search-scoring:v1.0-alpha
+    image: nitrosx71/panosc-search-scoring:v1.0-beta-9
     environment:
       PSS_DEBUG: 0
       PSS_MONGODB_URL: mongodb://pss-db:27017 
       PSS_DATABASE: pss
       PSS_PORT: 8000
+      PSS_DEPLOYMENT: "Local docker compose testing"
     depends_on:
       - pss-db
     ports:
@@ -14,7 +15,7 @@ services:
     networks:
       - pss-internal
   pss-db:
-    image: bitnami/mongodb:latest
+    image: bitnami/mongodb:4.4.14
     networks:
       - pss-internal
 #    ports:

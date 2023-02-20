@@ -22,7 +22,7 @@ from test.pss_test_base import pss_test_base
 from app.models.terms import TermResponseModel
 
 
-class TestTerms(pss_test_base):
+class TestScore(pss_test_base):
 
   # define test database
   _db_database_uri = test_data.test_database_uri

@@ -372,7 +372,7 @@ Returns the score for the items selected according to the query submitted.
 Parameters:
 * _query \(str\)_  
 sentence or list of key words to use in the relevancy scoring
-* _itemsId \(list of str\)\[optional\]_  
+* _itemIds \(list of str\)\[optional\]_  
 list of items id that needs to be scored in this request. Usually this list is provided by the catalogue system based on the hard filters provided. If no item ids are provided, all the items present in the database will be scored. Default: none.
 * _group: \(str\)\[optional\]_   
 group of items to be scored. If not provided, all type of items from all groups will be scored. If provided, only the items of the selected group will be scored. If items list is provided, it will be filtered according to the specified group. Default: none

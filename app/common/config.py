@@ -28,6 +28,7 @@ class Config:
     "debug" : False,
     "deployment" : "unknown",
     'incrementalWeightsComputation' : False
+    "return_zero_scores" : False
   }
 
   # list of environmental variables
@@ -42,8 +43,8 @@ class Config:
     "debug" : "bool",
     "deployment" : "str",
     'incrementalWeightsComputation' : "bool"
+    "return_zero_scores" : "bool"
   }
-
 
   def __init__(self,config_file="./config/pss_config.json") -> None:
     # load configuration from file if exists 
@@ -66,12 +67,16 @@ class Config:
         if self.env_variables[var] == 'int':
           self.config[var] = int(env_value)
         elif self.env_variables[var] == 'bool':
-          self.config[var] = bool(env_value)
+          self.config[var] = (
+            env_value.lower() in ['true','t',"1"] 
+            if type(env_value) == str 
+            else bool(env_value)
+          )
         else:
           self.config[var] = env_value
 
     # set root information
-    for info in ["application", "description", "version", "deployment"]:
+    for info in ["application", "description", "version", "deployment","return_zero_scores"]:
       self.rootInfo[info] = self.config[info]
     self.rootInfo["started-time"] = utils.getCurrentIsoTimestamp(self.tsStarted)
     
