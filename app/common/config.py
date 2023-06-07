@@ -27,7 +27,7 @@ class Config:
     "waitToStartCompute" : 5,
     "debug" : False,
     "deployment" : "unknown",
-    'incrementalWeightsComputation' : False
+    'incrementalWeightsComputation' : False,
     "return_zero_scores" : False
   }
 
@@ -42,7 +42,7 @@ class Config:
     "waitToStartCompute" : "int",
     "debug" : "bool",
     "deployment" : "str",
-    'incrementalWeightsComputation' : "bool"
+    'incrementalWeightsComputation' : "bool",
     "return_zero_scores" : "bool"
   }
 
@@ -76,7 +76,7 @@ class Config:
           self.config[var] = env_value
 
     # set root information
-    for info in ["application", "description", "version", "deployment","return_zero_scores"]:
+    for info in ["application", "description", "version", "deployment","return_zero_scores","incrementalWeightsComputation"]:
       self.rootInfo[info] = self.config[info]
     self.rootInfo["started-time"] = utils.getCurrentIsoTimestamp(self.tsStarted)
     
