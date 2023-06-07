@@ -628,6 +628,8 @@ class WC():
       db
     )
 
+    debug(config,"Starting weight computation");
+
     # run computation for all items independently from the group they belong
     await wc.select_group(None)
     await wc.set_items(new_items=new_items,update_items=update_items,delete_items=delete_items)
@@ -637,6 +639,7 @@ class WC():
     await wc.compute_TF()
     await wc.save_TF()
     await wc.compute_and_save_IDF()
+    debug(config,"Done weight computation");
 
     # update status to completed
     await wc._updateStatus(

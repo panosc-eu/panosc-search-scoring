@@ -182,6 +182,17 @@ async def new_items(req: Request, inputItems = Body(...)): #List[ItemCreateModel
     else:
       raise HTTPException(status_code=422,detail="Invalid data")
 
+    # if incremental is enabled, retrieve item and triggers update
+    if config.incrementalWeightsComputation:
+      debug(config,"Incremental Weights Computation")
+      await WC.runIncrementalWorkflow(
+        config,
+        db,
+        new_items=itemsId
+      )
+
+
+    # if incremental is enabled, retrieve item and triggers update
     return {
       'success' : True,
       'items_created' : len(itemsId),

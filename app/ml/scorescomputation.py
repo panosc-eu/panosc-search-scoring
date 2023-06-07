@@ -27,6 +27,7 @@ class SC:
   _query_terms = None
 
   _requested_items = []
+  _requested_group = ''
 
   _v_scores = None
   _v_query = None
@@ -68,8 +69,9 @@ class SC:
   async def _load_weights(self):
     """
     """
-    debug(self._config,'score_computation._load_weights')
-    
+    debug(self._config, 'score_computation._load_weights')
+    debug(self._config, f"Request : {self._request}")
+
     # load weights that refer to the query terms and the items passed
     # if no item ids have been passed, we use all items
     # same with the group
@@ -78,18 +80,23 @@ class SC:
         { '$in' : self._query_terms }
       }
     ]
+
     # check if we have the list of items id
     if "itemIds" in self._request.keys() and self._request['itemIds']:
       match_conditions.append(
-        { 'itemId' : { '$in' : self._request['itemIds'] } }
+        { "itemId" : { "$in" : self._request['itemIds']}}
       )
-      self._db_query['itemId'] = { '$in' : self._request['itemIds'] }
       self._requested_items = self._request['itemIds']
 
-    if "group" in self._request.keys() and self._request['group']:
-      match_conditions.append(
-        { 'itemGroup' : self._request['group'] }
-      )
+    # check if we have a default group
+    self._requested_group = \
+      self._request['group'] \
+        if "group" in self._request.keys() and self._request['group'] \
+        else 'default'
+    # if we do not have an item list, we use the default group
+    match_conditions.append(
+      { 'group' : self._requested_group }
+    )
 
     if len(match_conditions) > 1:
       match_conditions = {
@@ -152,9 +159,8 @@ class SC:
     # and from row to index
     self._col2term = sorted(list(set([item['term'] for item in weights] + self._query_terms)))
     self._term2col = { t:c for c,t in enumerate(self._col2term) }
-    self._row2item = sorted(list(
-      set([item['itemId'] for item in weights] + self._requested_items)
-    ))
+    debug(self._config, self._requested_items)
+    self._row2item = sorted(list(set([item['itemId'] for item in weights] + self._requested_items)))
     self._item2row = { i:r for r,i in enumerate(self._row2item) }
 
     # initialize the weight matrix to none
@@ -174,7 +180,7 @@ class SC:
       matrixRow = []
       matrixCol = []
       for weight in weights:
-        matrixData.append(weight['value'])
+        matrixData.append(weight['weight'])
         matrixRow.append(self._item2row[weight['itemId']])
         matrixCol.append(self._term2col[weight['term']])
 
@@ -213,6 +219,7 @@ class SC:
       if (len(self._query_terms) > 1):
 
         # prepare matrix with with query terms. All weights are set to 1
+        debug(self._config,"Normal query with more than 1 term")
         matrixData = []
         matrixCol = []
         for term in self._query_terms:
@@ -221,11 +228,14 @@ class SC:
         matrixRow = [0] * len(matrixCol)
     
         self._v_query = coo_matrix((matrixData,(matrixRow,matrixCol)))
+        debug(self._config,"Query")
         debug(self._config,self._v_query)
 
         # compute scores
         self._v_scores = cosine_similarity(self._m_weights,self._v_query,dense_output=False)
 
+        debug(self._config,"Scores")
+        debug(self._config,self._v_scores)
       else:
         # when the query has only one term
         # we cannot use the cosine similarity
@@ -241,7 +251,9 @@ class SC:
       self._v_scores = []
       self._sorted_scores = []
 
+    debug(self._config,"Final score")
     debug(self._config,self._v_scores)
+    debug(self._config,"Sorted Scores")
     debug(self._config,self._sorted_scores)
 
 
@@ -273,8 +285,8 @@ class SC:
 
     return [
       {
-        'itemId': self._row2item[row[0]][1],
-        'group' : self._row2item[row[0]][0],
+        'itemId': self._row2item[row[0]],
+        'group' : self._requested_group,
         'score' : self._v_scores[row[0],0]
       }
       for row
