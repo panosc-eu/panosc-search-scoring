@@ -3,7 +3,7 @@
 # notes: test the weight computation
 #  
 
-from app.common.database import COLLECTION_TF, COLLECTION_IDF
+from app.common.database import COLLECTION_ITEMS, COLLECTION_TF, COLLECTION_IDF
 from app.models.weights import WeightModel
 from json.decoder import JSONDecodeError
 from fastapi.testclient import TestClient
@@ -39,8 +39,10 @@ class TestScoresComputation(pss_test_base):
 
   # properties needed to test class instance
   _sc_test_data = None
-  _sc_score_request_dict = None
-  _sc_score_request_model = None
+  _sc_score_request_dict_group_default = None
+  _sc_score_request_model_group_default = None
+  _sc_score_request_dict_group_1 = None
+  _sc_score_request_model_group_1 = None
   _sc_config = None
   _sc_database = None  
   _sc_tf_collection = None 
@@ -67,6 +69,11 @@ class TestScoresComputation(pss_test_base):
   # we need to insert items and weights
   def _populateDatabase(self):
     # insert tf
+    self._db_collection = self._db_database[COLLECTION_ITEMS]
+    self._data = test_data.test_items_terms
+    res1 = super()._populateDatabase()
+
+    # insert tf
     self._db_collection = self._db_database[COLLECTION_TF]
     self._data = test_data.test_weights_tf
     res1 = super()._populateDatabase()
@@ -87,26 +94,47 @@ class TestScoresComputation(pss_test_base):
     self._sc_query_terms = ['retriev', 'inform']
     # item ids
     self._sc_items_ids = [
-      (
-        item['group'],
-        item['itemId'].lower() 
-      )
-      for item 
+      item['itemId'].lower()
+      for item
       in test_data.test_scores_computation
     ]
+    self._sc_items_ids_group_default = [
+      item['itemId'].lower()
+      for item
+      in test_data.test_scores_computation
+      if item['group'] == 'default'
+    ]
+    self._sc_items_ids_group_1 = [
+      item['itemId'].lower()
+      for item
+      in test_data.test_scores_computation
+      if item['group'] == 'group_1'
+    ]
+
     # create a score request as dictionary
-    self._sc_score_request_dict = {
+    self._sc_score_request_dict_group_default = {
       'query': self._sc_query,
-      'itemIds': [i[1] for i in self._sc_items_ids],
+      'itemIds': self._sc_items_ids,
       'group' : "",
       'limit' : -1
     }
     # same request as Model
-    self.sc_score_request_model = ScoreRequestModel(**self._sc_score_request_dict)
+    self.sc_score_request_model_group_default = ScoreRequestModel(**self._sc_score_request_dict_group_default)
+
+    # create a score request as dictionary
+    self._sc_score_request_dict_group_1 = {
+      'query': self._sc_query,
+      'itemIds': self._sc_items_ids,
+      'group' : "group_1",
+      'limit' : -1
+    }
+    # same request as Model
+    self.sc_score_request_model_group_1 = ScoreRequestModel(**self._sc_score_request_dict_group_1)
 
     # instantiate config class
     self._sc_config = Config()
     # instantiate database and collections
+    print(self._sc_config.mongodb_url)
     db_client = AsyncIOMotorClient(self._sc_config.mongodb_url)
     self._sc_database = db_client[self._sc_config.database]
     self._sc_tf_collection = self._sc_database[COLLECTION_TF]
@@ -135,20 +163,20 @@ class TestScoresComputation(pss_test_base):
   # TESTS
   # ================
   # instantiate SC class
-  def test_instantiate_sc(self):
+  def test_instantiate_sc_group_default(self):
     print("test_score_computation.test_instantiate_sc")
     # insert a items to be scored
     self._initialize_environment_for_class_test()
     # instantiate class
     sc = SC(
       self._sc_config,
-      self._sc_score_request_dict,
+      self._sc_score_request_dict_group_default,
       self._sc_database, 
       self._sc_tf_collection,
       self._sc_idf_collection
     )
     # test properties
-    assert sc._request == self._sc_score_request_dict
+    assert sc._request == self._sc_score_request_dict_group_default
     assert sc._db == self._sc_database
     assert sc._tf_coll == self._sc_tf_collection 
     assert sc._idf_coll == self._sc_idf_collection 
@@ -156,14 +184,14 @@ class TestScoresComputation(pss_test_base):
 
   # extract terms from query
   @pytest.mark.asyncio
-  async def test_extract_query_terms(self):
+  async def test_extract_query_terms_group_default(self):
     print("test_score_computation.test_extract_query_terms")
     # insert a items to be scored
     self._initialize_environment_for_class_test()
     # instantiate class
     sc = SC(
       self._sc_config,
-      self._sc_score_request_dict,
+      self._sc_score_request_dict_group_default,
       self._sc_database, 
       self._sc_tf_collection,
       self._sc_idf_collection
@@ -178,14 +206,14 @@ class TestScoresComputation(pss_test_base):
 
   # load weights
   @pytest.mark.asyncio
-  async def test_load_weights(self):
+  async def test_load_weights_group_default(self):
     print("test_score_computation.test_load_weights")
     # insert a items to be scored
     self._initialize_environment_for_class_test()
     # instantiate class
     sc = SC(
       self._sc_config,
-      self._sc_score_request_dict,
+      self._sc_score_request_dict_group_default,
       self._sc_database, 
       self._sc_tf_collection,
       self._sc_idf_collection
@@ -196,21 +224,20 @@ class TestScoresComputation(pss_test_base):
     await sc._load_weights()
     # check if we have the right terms and item in the weights dataframe
     assert sorted(sc._col2term) == sorted(self._sc_query_terms)
-    #print(sc._row2item)
-    #print(self._sc_items_ids)
+    # check if the items match with the expected ones
     assert sorted(sc._row2item) == sorted(self._sc_items_ids)
 
 
   # compute scores
   @pytest.mark.asyncio
-  async def test_compute_scores(self):
+  async def test_compute_scores_group_default(self):
     print("test_score_computation.test_compute_scores")
     # insert a items to be scored
     self._initialize_environment_for_class_test()
     # instantiate class
     sc = SC(
       self._sc_config,
-      self._sc_score_request_dict,
+      self._sc_score_request_dict_group_default,
       self._sc_database, 
       self._sc_tf_collection,
       self._sc_idf_collection
@@ -228,25 +255,26 @@ class TestScoresComputation(pss_test_base):
     assert sorted(sc._row2item) == sorted(self._sc_items_ids)
     # check the individual scores
     sc_v_scores = sc._v_scores
+    print(sc._item2row)
     for item in test_data.test_scores_computation:
-      v = round(sc_v_scores[
-        sc._item2row[
-          (item['group'],item['itemId'])
-        ],0],6)
-      assert v == item['score']
+      print(item)
+      # items not in the default have score 0
+      cv = round(sc_v_scores[sc._item2row[item['itemId']],0],6)
+      pv = item['score'] if item['group'] == 'default' else 0
+      assert cv == pv
 
 
 
   # runWorkflow
   @pytest.mark.asyncio
-  async def test_run_workflow(self):
+  async def test_run_workflow_group_default(self):
     print("test_scores_computation.test_run_workflow")
     # insert a items to be scored
     self._initialize_environment_for_class_test()
     # instantiate class
     sc = await SC.runWorkflow(
       self._sc_config,
-      self._sc_score_request_dict,
+      self._sc_score_request_dict_group_default,
       self._sc_database, 
       self._sc_tf_collection,
       self._sc_idf_collection
@@ -258,16 +286,159 @@ class TestScoresComputation(pss_test_base):
     assert sc_query_terms.sort() == self._sc_query_terms.sort()
     # scores length
     sc_scores_length = sc.getScoresLength()
-    assert sc_scores_length == len(self._sc_items_ids)
+    assert sc_scores_length == len(self._sc_items_ids_group_default)
     # scores
+    print(sc.getScores())
     sc_scores = {
       item['itemId'] : item['score']
       for item 
       in sc.getScores()
     }
-    assert list(sc_scores.keys()).sort() == self._sc_items_ids.sort()
+    print(sc_scores)
+    assert list(sc_scores.keys()).sort() == self._sc_items_ids_group_default.sort()
     for item in test_data.test_scores_computation:
-      assert round(sc_scores[item['itemId']],6) == item['score']
+      if item['group'] == 'default':
+        assert round(sc_scores[item['itemId']],6) == item['score']
+      else:
+        assert item['itemId'] not in sc_scores.keys()
 
+  def test_instantiate_sc_group_1(self):
+    print("test_score_computation.test_instantiate_sc")
+    # insert a items to be scored
+    self._initialize_environment_for_class_test()
+    # instantiate class
+    sc = SC(
+      self._sc_config,
+      self._sc_score_request_dict_group_1,
+      self._sc_database,
+      self._sc_tf_collection,
+      self._sc_idf_collection
+    )
+    # test properties
+    assert sc._request == self._sc_score_request_dict_group_1
+    assert sc._db == self._sc_database
+    assert sc._tf_coll == self._sc_tf_collection
+    assert sc._idf_coll == self._sc_idf_collection
+
+
+  # extract terms from query
+  @pytest.mark.asyncio
+  async def test_extract_query_terms_group_1(self):
+    print("test_score_computation.test_extract_query_terms")
+    # insert a items to be scored
+    self._initialize_environment_for_class_test()
+    # instantiate class
+    sc = SC(
+      self._sc_config,
+      self._sc_score_request_dict_group_1,
+      self._sc_database,
+      self._sc_tf_collection,
+      self._sc_idf_collection
+    )
+    # extract query terms
+    #print(sc)
+    await sc._extract_query_terms()
+    #print(sc._query_terms)
+    # test list
+    assert sc._query_terms.sort() == self._sc_query_terms.sort()
+
+
+  # load weights
+  @pytest.mark.asyncio
+  async def test_load_weights_group_1(self):
+    print("test_score_computation.test_load_weights")
+    # insert a items to be scored
+    self._initialize_environment_for_class_test()
+    # instantiate class
+    sc = SC(
+      self._sc_config,
+      self._sc_score_request_dict_group_1,
+      self._sc_database,
+      self._sc_tf_collection,
+      self._sc_idf_collection
+    )
+    # extract query terms
+    await sc._extract_query_terms()
+    # load weights
+    await sc._load_weights()
+    # check if we have the right terms and item in the weights dataframe
+    assert sorted(sc._col2term) == sorted(self._sc_query_terms)
+    # check if the items match with the expected ones
+    assert sorted(sc._row2item) == sorted(self._sc_items_ids)
+
+
+  # compute scores
+  @pytest.mark.asyncio
+  async def test_compute_scores_group_1(self):
+    print("test_score_computation.test_compute_scores")
+    # insert a items to be scored
+    self._initialize_environment_for_class_test()
+    # instantiate class
+    sc = SC(
+      self._sc_config,
+      self._sc_score_request_dict_group_1,
+      self._sc_database,
+      self._sc_tf_collection,
+      self._sc_idf_collection
+    )
+    # prepare for computing score
+    await sc._extract_query_terms()
+    await sc._load_weights()
+    # compute scores
+    await sc._compute_scores()
+    #
+    #print(sc._v_scores)
+    # check that we have all the expected scores
+    assert sc._v_scores.shape[0] == len(self._sc_items_ids)
+    # check that we have the correct term ids
+    assert sorted(sc._row2item) == sorted(self._sc_items_ids)
+    # check the individual scores
+    sc_v_scores = sc._v_scores
+    print(sc._item2row)
+    for item in test_data.test_scores_computation:
+      print(item)
+      # items not in the default have score 0
+      cv = round(sc_v_scores[sc._item2row[item['itemId']],0],6)
+      pv = item['score'] if item['group'] == 'group_1' else 0
+      assert cv == pv
+
+
+
+  # runWorkflow
+  @pytest.mark.asyncio
+  async def test_run_workflow_group_1(self):
+    print("test_scores_computation.test_run_workflow")
+    # insert a items to be scored
+    self._initialize_environment_for_class_test()
+    # instantiate class
+    sc = await SC.runWorkflow(
+      self._sc_config,
+      self._sc_score_request_dict_group_1,
+      self._sc_database,
+      self._sc_tf_collection,
+      self._sc_idf_collection
+    )
+    # query terms
+    #print(sc)
+    sc_query_terms = sc.getQueryTerms()
+    # check that something was saved in the weights place holder
+    assert sc_query_terms.sort() == self._sc_query_terms.sort()
+    # scores length
+    sc_scores_length = sc.getScoresLength()
+    assert sc_scores_length == len(self._sc_items_ids_group_1)
+    # scores
+    print(sc.getScores())
+    sc_scores = {
+      item['itemId'] : item['score']
+      for item
+      in sc.getScores()
+    }
+    print(sc_scores)
+    assert list(sc_scores.keys()).sort() == self._sc_items_ids_group_1.sort()
+    for item in test_data.test_scores_computation:
+      if item['group'] == 'group_1':
+        assert round(sc_scores[item['itemId']],6) == item['score']
+      else:
+        assert item['itemId'] not in sc_scores.keys()
 
 

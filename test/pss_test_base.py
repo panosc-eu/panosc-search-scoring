@@ -64,6 +64,7 @@ class pss_test_base:
     print("PSS test class : empty database")
 
     # delete all the collections
+    print("Database name: " + self._db_database_name)
     for coll_name in self._db_database.list_collection_names():
       print("Dropping collection : " + coll_name)
       temp_coll = self._db_database[coll_name]
