@@ -34,11 +34,14 @@ router = APIRouter(
   status_code=200,
   response_model=ComputeStatusResponseModel,
   responses={
-    404: {
-      'Model': ComputeStatusResponseModel
-    },
+  #  200: {
+  #    'Model': ComputeStatusResponseModel
+  #  },
+  #  404: {
+  #    'Model': ComputeStatusResponseModel
+  #  },
     500: {
-      'Model': { 'message' : str }
+      'description' : 'Internal server error'
     }
   }
 )
@@ -55,18 +58,27 @@ async def get_compute_status(
 
   if not computeStatus or len(computeStatus) == 0:
     # item not found
-    return JSONResponse(
-      status_code=404,
-      content=jsonable_encoder(
-        ComputeStatusResponseModel(
-          **{
-            "progressPercent" : 0,
-            "progressDescription" : "Weights computation not yet run",
-            "inProgress" : False
-          }
-        )
+    #return JSONResponse(
+    #  status_code=200,
+    #  content=jsonable_encoder(
+    #    ComputeStatusResponseModel(
+    #      **{
+    #        "progressPercent" : 0,
+    #        "progressDescription" : "Weights computation not yet run",
+    #        "inProgress" : False
+    #      }
+    #    )
+    #  )
+    #)
+    computeStatus = [
+      ComputeStatusResponseModel(
+        **{
+          "progressPercent" : 0,
+          "progressDescription" : "Weights computation not yet run",
+          "inProgress" : False
+        }
       )
-    )
+    ]
   elif len(computeStatus) > 1:
     # item not found
     return JSONResponse(
@@ -121,11 +133,14 @@ async def run_background_weight_computation(config, db, coll):
   status_code=200,
   response_model=ComputeStatusResponseModel,
   responses={
-    409: {
-      'Model': ComputeStatusResponseModel
-    },
+  #  200: {
+  #    'Model': ComputeStatusResponseModel
+  #  },
+  #  409: {
+  #    'Model': ComputeStatusResponseModel
+  #  },
     500: {
-      'Model': { 'message' : str }
+      'description' : "Internal server error"
     }
   }
 )
