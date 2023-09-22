@@ -501,6 +501,18 @@ class WC():
       if len(list_match_condition) == 1 \
       else { '$or' : list_match_condition }
     # prepare the pipeline for the aggregation
+    # make sure that you have the correct index created on the weights_idf
+    #db.weights_idf.createIndex( { 'group': 1, 'term': 1 }, { 'unique': true, "name" : "weights_idf" })
+    #
+    # [
+    #  {'$match': {'$expr': {'$and': [{'$in': ['$term', ['advantag', 'address', 'mean', 'post', 'faster', 'use', 'fourteen', 'mention', 'cours', 'instruct', 'articl', 'two', 'new', 'take', 'forti', 'sixty', 'reed', 'machin', 'twelv', 'mode', 'rewritten', 'six', 'video', 'seven', '1993apr15', 'q800', 'slightli', 'write', 'adam', 'byte', 'especkma', 'recal', 'eighty', 'fill', 'command', 'c650', 'insid', 'rom', 'speckman', 'hundr', 'word', 'eight', 'fetch', 'sinc', 'centri', 'thousand', 'quadra', 'versu', 'text', 'erik', 'see', 'dale', 'quickdraw', 'acceler', 'edu', 'one', 'c610', 'macus', 'time']]}, {'$eq': ['$group', 'default']}]}}},
+    #  {'$group': {'_id': {'term': '$term', 'group': '$group'}, 'cdt': {'$sum': 1}}},
+    #  {'$project': { '_id': 0, 'term' : '$_id.term', 'group': '$_id.group', 'cdt': 1 }},
+    #  {'$lookup': {'from': 'items', 'let': {'item_group': '$group'}, 'pipeline': [{'$match': {'$expr': {'$eq': ['$group', '$$item_group']}}}, {'$count': 'count'}], 'as': 'cd'}},
+    #  {'$project': {'_id': 0, 'term': 1, 'group': 1, 'cd': {'$first': '$cd.count'}, 'cdt': '$cdt'}},
+    #  {'$project': {'_id': 0, 'term': 1, 'group': 1, 'IDF': {'$log10': {'$sum': [1, {'$divide': ['$cd', '$cdt']} ]}}}},
+    #  {'$merge': {'into': 'weights_idf', 'on': ['group', 'term'], 'whenMatched': 'replace', 'whenNotMatched': 'insert'}}
+    # ]
     pipeline = [
       {
         '$match' : {
@@ -514,14 +526,22 @@ class WC():
         }
       },
       {
+        '$project': {
+          '_id': 0,
+          'term' : '$_id.term',
+          'group': '$_id.group',
+          'cdt': 1
+        }
+      },
+      {
         '$lookup' : {
           'from' : COLLECTION_ITEMS,
-          'let' : { 'group' : '$_id.group' },
+          'let' : { 'item_group' : '$group' },
           'pipeline' : [
             {
               '$match' : {
               '$expr' : {
-                '$eq' : [ '$group' , '$$group' ]
+                '$eq' : [ '$group' , '$$item_group' ]
                 }
               }
             },
@@ -535,8 +555,8 @@ class WC():
       {
         '$project' : {
           '_id' : 0,
-          'term' : '$_id.term',
-          'group' : '$_id.group',
+          'term' : 1,
+          'group' : 1,
           'cd' : { '$first' : '$cd.count' },
           'cdt' : '$cdt',
         }   
@@ -546,7 +566,7 @@ class WC():
           '_id' : 0,
           'term' : 1,
           'group' : 1,
-          'timestamp' : self._timestamp,
+          'timestamp' : self._timestamp.isoformat(),
           'IDF' : { '$log10' : { '$sum' : [ 1, { '$divide' : [ '$cd', '$cdt' ] } ] } }
         }   
       },
@@ -561,8 +581,7 @@ class WC():
     ]
     # run aggregation
     # res should be empty as we save the results directly with $merge
-    #print("---------")
-    #print(pipeline)
+    debug(self._config,pipeline)
     res = await self._tf_coll.aggregate(pipeline).to_list(None)
 
     await self._updateStatus(0.61,"IDF weights updated")
@@ -619,9 +638,18 @@ class WC():
       update_items=[],
       delete_items=[]
   ):
-    """
+    '''
     run the incremental workflow on items just inserted, updated or deleted
-    """
+
+    :param config: configuration structure
+    :param db: database connection
+    :param new_items: list of the new items just inserted in the database
+    :param update_items: list of the items that have been updated
+    :param delete_items: list of the ids of items that have been deleted
+    :return:
+    '''
+
+
     # instantiate class for weight computation
     wc = cls(
       config, 

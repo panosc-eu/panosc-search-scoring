@@ -73,6 +73,7 @@ async def get_items(req: Request, limit: int = LIMIT_DEFAULT, offset: int = 0):
   )
   # retrieve results
   #items = await db[endpointRoute].find().skip(offset).to_list(limit)
+  debug(config,pipeline)
   items = await db[endpointRoute].aggregate(pipeline).to_list(length=None)
 
   return jsonable_encoder(items,by_alias=False)
@@ -170,17 +171,29 @@ async def new_items(req: Request, inputItems = Body(...)): #List[ItemCreateModel
     # check if we need to insert one or many
     writtenItems = 0
     if type(inputItems) is dict:
-      # we have only one item to insert
-      modeledItem = jsonable_encoder(ItemModel(**inputItems), by_alias=True)
-      results = await db[endpointRoute].insert_one(modeledItem)
-      itemsId = [results.inserted_id] if (type(results.inserted_id) is str and results.inserted_id) else []
+      # we have only one structured item to insert
+      inputItems = [inputItems]
     elif type(inputItems) is list:
       # we assume that we have many items to insert
-      modeledItems = jsonable_encoder([ItemModel(**item) for item in inputItems], by_alias=True)
-      results = await db[endpointRoute].insert_many(modeledItems)
-      itemsId = results.inserted_ids
+      pass
     else:
       raise HTTPException(status_code=422,detail="Invalid data")
+
+    # extract terms for each items
+    modeledItems = jsonable_encoder(
+      [
+        ItemModel(**{
+          **item,
+          **{
+            'terms': pit.preprocessItemText(item)
+          }
+        }) for item in inputItems
+      ],
+      by_alias=True
+    )
+    results = await db[endpointRoute].insert_many(modeledItems)
+    itemsId = results.inserted_ids
+
 
     # if incremental is enabled, retrieve item and triggers update
     if config.incrementalWeightsComputation:
@@ -188,7 +201,7 @@ async def new_items(req: Request, inputItems = Body(...)): #List[ItemCreateModel
       await WC.runIncrementalWorkflow(
         config,
         db,
-        new_items=itemsId
+        new_items=modeledItems
       )
 
 
@@ -214,13 +227,14 @@ async def new_items(req: Request, inputItems = Body(...)): #List[ItemCreateModel
   status_code=200
 )
 async def delete_item(
-    req: Request
+    req: Request,
+    item_id: str
 ):
   # extract db and config from the app class
   config = req.app.state.config
   db = req.app.state.db_database
 
-  item_id = req.path_params['item_id']
+  #item_id = req.path_params['item_id']
   debug(config,'Delete : ' + item_id)
 
   # if incremental is enabled, retrieve item and triggers update

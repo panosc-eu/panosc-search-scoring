@@ -18,7 +18,7 @@ def itemTF(item,terms_key='terms'):
   where the value under the terms_key contains the terms extracted
   from the item's text
 
-  Ouput:
+  Output:
   - a dictionary of the terms extracted with the related term frequency 
   """
 
@@ -94,7 +94,7 @@ def TF(items,terms_key='terms'):
     termsSet.update(newTerms)
 
     # add current item to row mapping
-    row2item.append([item['group'], item['id']])
+    row2item.append([item['group'], item['_id']])
 
     # prepares the variables to define the sparse matrix
     # we need to provide 3 different lists: data, the row and the col
