@@ -40,6 +40,7 @@ class ItemCreationResponseModel(BaseModel):
   success: bool
   items_created: int
   items_ids: List[str]
+  logs: List[str]
 
 # items count model
 class ItemsCountResponseModel(BaseModel):

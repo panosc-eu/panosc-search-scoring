@@ -3,6 +3,7 @@
 
 import os
 import json
+import logging
 
 from . import utils
 
@@ -28,7 +29,8 @@ class Config:
     "debug" : False,
     "deployment" : "unknown",
     'incrementalWeightsComputation' : False,
-    "return_zero_scores" : False
+    "return_zero_scores" : False,
+    "logger" : None
   }
 
   # list of environmental variables
@@ -79,6 +81,7 @@ class Config:
     for info in ["application", "description", "version", "deployment","return_zero_scores","incrementalWeightsComputation"]:
       self.rootInfo[info] = self.config[info]
     self.rootInfo["started-time"] = utils.getCurrentIsoTimestamp(self.tsStarted)
+    self.logger = logging.getLogger("ray.serve")
     
 
   def getCurrentRootInfo(self):

@@ -81,6 +81,7 @@ class WC():
 
     self._items = []
 
+    self._logs = []
 
   # --------------------
   async def _updateStatus(
@@ -91,10 +92,12 @@ class WC():
       ended: Union[datetime, None] = None,
       inProgress: bool = True
   ):
+    timestamp = datetime.now().isoformat()
     # insert in logs
-    self._logs.append("{}: {}".format(progress, message))
+    self._logs.append("{} - {}: {}".format(timestamp, progress, message))
     # prepare status
-    status = { 
+    status = {
+      "timestamp" : timestamp,
       "progressPercent" : progress,
       "progressDescription" : message,
       "inProgress" : inProgress,
@@ -124,7 +127,7 @@ class WC():
     """
     returns the list of unique group present in the items collections
     """
-    await self._updateStatus(0.05,"Loading groups")
+    await self._updateStatus(0.11,"Loading groups")
     # create aggregation pipeline
     pipeline = []
     # check if we have 
@@ -153,7 +156,7 @@ class WC():
       groups = res[0]['groups']
 
     # updates status
-    await self._updateStatus(0.06,"Found {} groups".format(len(groups)))
+    await self._updateStatus(0.15,"Found {} groups".format(len(groups)))
     return groups
 
 
@@ -164,7 +167,7 @@ class WC():
     Set the group we want to compute the weights from
     """
     self._group = group
-    await self._updateStatus(0.10,"Group set to {}".format(group))
+    await self._updateStatus(0.21,"Group set to {}".format(group))
     
 
   # --------------------
@@ -173,7 +176,7 @@ class WC():
     """
     Load items from database if needed
     """
-    await self._updateStatus(0.15,"Loading items for group {}".format(self._group))
+    await self._updateStatus(0.31,"Loading items for group {}".format(self._group))
 
     # load all the items to be scored from the database
     # and save them in standard python list.
@@ -216,7 +219,7 @@ class WC():
     self._items_to_be_updated = [item for item in list_cursor]
 
     # update status in database
-    await self._updateStatus(0.16,"{} items loaded".format(len(self._items_to_be_updated)))
+    await self._updateStatus(0.35,"{} items loaded".format(len(self._items_to_be_updated)))
 
 
 
@@ -227,7 +230,7 @@ class WC():
     compute weights TF for terms
     """
     # update status in database
-    await self._updateStatus(0.20,"Computing weights TF")
+    await self._updateStatus(0.71,"Computing weights TF. Number of items: {}".format(len(self._items_to_be_updated)))
 
     if self._items_to_be_updated:
       # computes weights for pair item,term
@@ -237,12 +240,12 @@ class WC():
       self._terms_update += self._TF_cols
 
       # update status in database
-      await self._updateStatus(0.21,"Weights TF computed")
+      await self._updateStatus(0.75,"Weights TF computed. Items: {}. Terms: {}".format(len(self._TF_rows),len(self._TF_cols)))
 
     else:
       self._TF = None
       # update status in database
-      await self._updateStatus(0.22,"Weights TF computing not necessary")
+      await self._updateStatus(0.76,"Weights TF computing not necessary")
       
 
   # -------------------
@@ -252,7 +255,7 @@ class WC():
     save weights TF in database
     """
     # update status in database
-    await self._updateStatus(0.25,"Preparing weights TF for database update")
+    await self._updateStatus(0.81,"Preparing weights TF for database update")
 
     if self._TF is not None:
 
@@ -281,15 +284,15 @@ class WC():
         in range(rows.shape[0])
       ]
 
-      await self._updateStatus(0.26,"Saving TF weights")
+      await self._updateStatus(0.85,"Saving TF weights. Weights: {}".format(len(db_operations)))
       res = await self._tf_coll.bulk_write(db_operations)
 
       # update status in database
-      await self._updateStatus(0.27,"TF weights updated")
+      await self._updateStatus(0.86,"TF weights updated")
 
     else:
       # update status in database
-      await self._updateStatus(0.28,"TF weights update no necessary")
+      await self._updateStatus(0.87,"TF weights update no necessary")
 
 
 
@@ -298,14 +301,14 @@ class WC():
   async def remove_old_TF(self):
     # remove older version of TF weights
 
-    await self._updateStatus(0.30,"Deleting old TF weights")
+    await self._updateStatus(0.61,"Deleting old TF weights")
     res = await self._TF_coll.delete_many(
       {
         'itemGroup' : self._group , 
         'timestamp' : { "$lt" : self._timestamp }
       }
     )
-    await self._updateStatus(0.31,"Old TF weights deleted")
+    await self._updateStatus(0.62,"Old TF weights deleted")
 
 
   # -------------------
@@ -348,7 +351,7 @@ class WC():
     self._terms_update = []
 
     await self._updateStatus(
-      0.35,
+      0.31,
       "Item set. New items {}, deleted items {}, updated items {}".format(
         len(self._new_items),
         len(self._delete_items),
@@ -363,7 +366,7 @@ class WC():
     # load all the terms that are currently in the items 
     # that are going to be updated or deleted
 
-    await self._updateStatus(0.40,"Loading terms for {} items to be updated".format(len(self._items_id_remove_tf)))
+    await self._updateStatus(0.41,"Loading terms for {} items to be updated".format(len(self._items_id_remove_tf)))
 
     # build the pipeline
     pipeline = [
@@ -415,7 +418,7 @@ class WC():
     )) 
 
     # update status in database
-    await self._updateStatus(0.41,"Loaded {} terms".format(len(self._terms_update)))
+    await self._updateStatus(0.45,"Loaded {} terms".format(len(self._terms_update)))
 
 
 
@@ -425,11 +428,11 @@ class WC():
     # remove TF weights that related to deleted items
 
     # update status in database
-    await self._updateStatus(0.45,"Deleting obsolete TF weights")
+    await self._updateStatus(0.51,"Deleting obsolete TF weights")
 
     res = await self._tf_coll.delete_many({'itemId' : { '$in' : self._items_id_remove_tf}})    
 
-    await self._updateStatus(0.46,"Obsolete TF weights deleted")
+    await self._updateStatus(0.55,"Obsolete TF weights deleted")
 
 
   # -------------------
@@ -439,6 +442,7 @@ class WC():
     # update status in database
     await self._updateStatus(0.50,"Deleting all IDF weights")
 
+    # TO_DO: Needs the group
     await self._idf_coll.delete_many({})    
 
     await self._updateStatus(0.51,"Deleted all IDF weights")
@@ -451,7 +455,7 @@ class WC():
     # remove TF weights that related to updated or deleted items
 
     # update status in database
-    await self._updateStatus(0.55,"Deleting obsolete IDF weights for {} updated terms".format(len(self._terms_update)))
+    await self._updateStatus(0.61,"Deleting obsolete IDF weights for {} updated terms".format(len(self._terms_update)))
 
     # check if we
     if len(self._terms_update)>0:
@@ -467,11 +471,11 @@ class WC():
       ]
       res = await self._idf_coll.bulk_write(db_operations)
 
-      await self._updateStatus(0.56,"IDF weights for updated terms deleted")
+      await self._updateStatus(0.65,"IDF weights for updated terms deleted")
 
     else:
 
-      await self._updateStatus(0.56,"no IDF weights to be deleted")
+      await self._updateStatus(0.66,"no IDF weights to be deleted")
 
 
 
@@ -481,7 +485,7 @@ class WC():
     # compute and save IDF weights
     # list of terms per group has to be ready
 
-    await self._updateStatus(0.60,"Updating IDF weights")
+    await self._updateStatus(0.91,"Updating IDF weights")
 
     # prepare expression for matching
     reshape_cond = defaultdict(lambda: [])
@@ -581,10 +585,10 @@ class WC():
     ]
     # run aggregation
     # res should be empty as we save the results directly with $merge
-    debug(self._config,pipeline)
+    #debug(self._config,pipeline)
     res = await self._tf_coll.aggregate(pipeline).to_list(None)
 
-    await self._updateStatus(0.61,"IDF weights updated")
+    await self._updateStatus(0.95,"IDF weights updated")
 
 
 
@@ -667,7 +671,6 @@ class WC():
     await wc.compute_TF()
     await wc.save_TF()
     await wc.compute_and_save_IDF()
-    debug(config,"Done weight computation");
 
     # update status to completed
     await wc._updateStatus(

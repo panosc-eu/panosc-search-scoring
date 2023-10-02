@@ -38,7 +38,7 @@ router = APIRouter(
 
 # Route GET:/items
 @router.get(
-  "/",
+  "",
   response_model=List[ItemModel],
   status_code=200,
   response_model_by_alias=False
@@ -150,7 +150,7 @@ def extract_item_terms(item):
 
 # Route POST:/items
 @router.post(
-  "/", 
+  "",
   response_model=ItemCreationResponseModel,
   status_code=201
 )
@@ -196,20 +196,23 @@ async def new_items(req: Request, inputItems = Body(...)): #List[ItemCreateModel
 
 
     # if incremental is enabled, retrieve item and triggers update
+    logs = []
     if config.incrementalWeightsComputation:
       debug(config,"Incremental Weights Computation")
-      await WC.runIncrementalWorkflow(
+      wc = await WC.runIncrementalWorkflow(
         config,
         db,
         new_items=modeledItems
       )
+      logs = wc._logs
 
 
     # if incremental is enabled, retrieve item and triggers update
     return {
       'success' : True,
       'items_created' : len(itemsId),
-      'items_ids' : itemsId
+      'items_ids' : itemsId,
+      'logs': logs
     }
     
   except Exception as e:

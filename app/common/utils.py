@@ -17,6 +17,7 @@ def debug(config,message):
   """
   try:
     if config.debug == True:
-      print(message)
+      config.logger.info(datetime.now().isoformat()," : ",message)
+      #print(datetime.datetime.now().isoformat()," : ",message)
   except:
     pass
