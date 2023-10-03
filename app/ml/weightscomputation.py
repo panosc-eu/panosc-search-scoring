@@ -485,25 +485,26 @@ class WC():
     # compute and save IDF weights
     # list of terms per group has to be ready
 
-    await self._updateStatus(0.91,"Updating IDF weights")
+    await self._updateStatus(0.91,"Updating IDF weights. Terms: {}".format(len(self._terms_update)))
 
-    # prepare expression for matching
-    reshape_cond = defaultdict(lambda: [])
-    for i in self._terms_update:
-        reshape_cond[i[0]].append(i[1])
-    list_match_condition = [
-      {
-        '$and' : [
-          { '$in' : [ '$term' , list(set(l)) ] },
-          { '$eq' : [ '$group', g ] }
-        ]
-      }
-      for g,l
-      in reshape_cond.items()
-    ]
-    list_match_condition = list_match_condition[0] \
-      if len(list_match_condition) == 1 \
-      else { '$or' : list_match_condition }
+    # # prepare expression for matching
+    # reshape_cond = defaultdict(lambda: [])
+    # for i in self._terms_update:
+    #     reshape_cond[i[0]].append(i[1])
+    # list_match_condition = [
+    #   {
+    #     '$and' : [
+    #       { '$in' : [ '$term' , list(set(l)) ] },
+    #       { '$eq' : [ '$group', g ] }
+    #     ]
+    #   }
+    #   for g,l
+    #   in reshape_cond.items()
+    # ]
+    # await self._updateStatus(0.92,"IDF weights. Conditions: {}".format(len(list_match_condition)))
+    # list_match_condition = list_match_condition[0] \
+    #   if len(list_match_condition) == 1 \
+    #   else { '$or' : list_match_condition }
     # prepare the pipeline for the aggregation
     # make sure that you have the correct index created on the weights_idf
     #db.weights_idf.createIndex( { 'group': 1, 'term': 1 }, { 'unique': true, "name" : "weights_idf" })
@@ -517,72 +518,173 @@ class WC():
     #  {'$project': {'_id': 0, 'term': 1, 'group': 1, 'IDF': {'$log10': {'$sum': [1, {'$divide': ['$cd', '$cdt']} ]}}}},
     #  {'$merge': {'into': 'weights_idf', 'on': ['group', 'term'], 'whenMatched': 'replace', 'whenNotMatched': 'insert'}}
     # ]
+    # pipeline = [
+    #   {
+    #     '$match' : {
+    #       '$expr' : list_match_condition
+    #     }
+    #   },
+    #   {
+    #     '$group' : {
+    #       '_id' : { 'term' : '$term', 'group' : '$group' },
+    #       'cdt' : { '$sum' : 1 }
+    #     }
+    #   },
+    #   {
+    #     '$project': {
+    #       '_id': 0,
+    #       'term' : '$_id.term',
+    #       'group': '$_id.group',
+    #       'cdt': 1
+    #     }
+    #   },
+    #   {
+    #     '$lookup' : {
+    #       'from' : COLLECTION_ITEMS,
+    #       'let' : { 'item_group' : '$group' },
+    #       'pipeline' : [
+    #         {
+    #           '$match' : {
+    #           '$expr' : {
+    #             '$eq' : [ '$group' , '$$item_group' ]
+    #             }
+    #           }
+    #         },
+    #         {
+    #           '$count' : 'count'
+    #         }
+    #       ],
+    #       'as' : 'cd'
+    #     }
+    #   },
+    #   {
+    #     '$project' : {
+    #       '_id' : 0,
+    #       'term' : 1,
+    #       'group' : 1,
+    #       'cd' : { '$first' : '$cd.count' },
+    #       'cdt' : '$cdt',
+    #     }
+    #   },
+    #   {
+    #     '$project' : {
+    #       '_id' : 0,
+    #       'term' : 1,
+    #       'group' : 1,
+    #       'timestamp' : self._timestamp.isoformat(),
+    #       'IDF' : { '$log10' : { '$sum' : [ 1, { '$divide' : [ '$cd', '$cdt' ] } ] } }
+    #     }
+    #   },
+    #   {
+    #     '$merge' : {
+    #       'into' : COLLECTION_IDF,
+    #       'on' : [ 'group' , 'term' ],
+    #       'whenMatched' : 'replace',
+    #       'whenNotMatched' : 'insert'
+    #     }
+    #   }
+    # ]
+
+    # prepare group matching expression
+    groups_condition = [
+      {'$eq' : ['$group', g]}
+      for g
+      in list(set(
+        [g[0] for g in self._terms_update]
+      ))
+    ]
+    groups_condition = groups_condition[0] \
+      if len(groups_condition) == 1 \
+      else {'$or': groups_condition}
+
+    # prepare group,term list
+    group_term_list = [
+      {
+        'group' : e[0],
+        'term' : e[1]
+      }
+      for e
+      in self._terms_update
+    ]
+
     pipeline = [
       {
-        '$match' : {
-          '$expr' : list_match_condition
+        "$match" : {
+          "$expr" : groups_condition
         }
       },
       {
-        '$group' : {
-          '_id' : { 'term' : '$term', 'group' : '$group' },
-          'cdt' : { '$sum' : 1 }
+        "$group" : {
+          "_id" : "null",
+          "group" : { "$last": "$group" } ,
+          "document_count": { "$sum" : 1 }
         }
       },
       {
-        '$project': {
-          '_id': 0,
-          'term' : '$_id.term',
-          'group': '$_id.group',
-          'cdt': 1
+        "$addFields" : {
+          "group_term" : group_term_list
+        }
+      },
+      { "$unwind": { "path": "$group_term" } },
+      { "$match": { "$expr": {"$eq": ["$group", "$group_term.group"] } } },
+      {
+        "$project" : {
+          "group" :  1,
+          "document_count": 1,
+          "term" : "$group_term.term"
         }
       },
       {
-        '$lookup' : {
-          'from' : COLLECTION_ITEMS,
-          'let' : { 'item_group' : '$group' },
-          'pipeline' : [
+        "$lookup" : {
+          "from" : "weights_tf",
+          "let" : {
+            "weight_group" : "$group",
+            "weight_term": "$term"
+          },
+          "pipeline" : [
             {
-              '$match' : {
-              '$expr' : {
-                '$eq' : [ '$group' , '$$item_group' ]
+              "$match" : {
+                "$expr" : {
+                  "$and" : [
+                    { "$eq" : [ "$group" , "$$weight_group" ] },
+                    { "$eq" : [ "$term", "$$weight_term" ] }
+                  ]
                 }
               }
             },
-            {
-              '$count' : 'count'
-            }
+            { "$count" : "count" }
           ],
-          'as' : 'cd'
+          "as" : "term_document"
         }
-      },    
-      {
-        '$project' : {
-          '_id' : 0,
-          'term' : 1,
-          'group' : 1,
-          'cd' : { '$first' : '$cd.count' },
-          'cdt' : '$cdt',
-        }   
       },
       {
-        '$project' : {
-          '_id' : 0,
-          'term' : 1,
-          'group' : 1,
-          'timestamp' : self._timestamp.isoformat(),
-          'IDF' : { '$log10' : { '$sum' : [ 1, { '$divide' : [ '$cd', '$cdt' ] } ] } }
-        }   
+        "$project" : {
+          "_id" : 0,
+          "term" : 1,
+          "group" : 1,
+          "term_document_count" : { "$first" : "$term_document.count" },
+          "document_count" : 1
+        }
+      },
+      {
+        "$project" : {
+          "_id" : 0,
+          "term" : 1,
+          "group" : 1,
+          "IDF" : { "$log10" : { "$sum" : [ 1, { "$divide" : [ "$term_document_count", "$document_count" ] } ] } }
+        }
       },
       {
         '$merge' : {
           'into' : COLLECTION_IDF,
-          'on' : [ 'group' , 'term' ],
+          'on' : ['group', 'term'],
           'whenMatched' : 'replace',
           'whenNotMatched' : 'insert'
         }
       }
     ]
+
+
     # run aggregation
     # res should be empty as we save the results directly with $merge
     #debug(self._config,pipeline)
