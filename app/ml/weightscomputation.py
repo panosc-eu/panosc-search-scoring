@@ -102,7 +102,7 @@ class WC():
           'group' : { "$ifNull": [ "$group", "default"] }
         }},
         {'$group' : {
-          '_id' : None,
+          '_id' : 'groups_list',
           'groups' : { "$addToSet" : "$group" }
         }}
       ]
