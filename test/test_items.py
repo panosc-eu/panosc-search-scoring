@@ -41,7 +41,7 @@ class TestItems(pss_test_base):
     with TestClient(app.app) as client:
       # successful creation
       response = client.post(
-        url="/items/",
+        url="/items",
         json=item_to_be_created
       )
       assert response.status_code == 201
@@ -59,14 +59,14 @@ class TestItems(pss_test_base):
     with TestClient(app.app) as client:
       # creation first instance of item
       response = client.post(
-        url='/items/',
+        url='/items',
         json=item_to_be_created
       ) 
       assert response.status_code == 201
       # failed creation
       try:
         response = client.post(
-          url='/items/',
+          url='/items',
           json=item_to_be_created
         )
         assert False
@@ -84,7 +84,7 @@ class TestItems(pss_test_base):
       # failed creation
       try:
         response = client.post(
-          url='/items/',
+          url='/items',
           json=item_to_be_created
         )
         assert False
@@ -102,7 +102,7 @@ class TestItems(pss_test_base):
     with TestClient(app.app) as client:
       # successful creation
       response = client.post(
-        url="/items/",
+        url="/items",
         json=items_to_be_created
       )
       assert response.status_code == 201
@@ -122,7 +122,7 @@ class TestItems(pss_test_base):
       try:
         # failed creation
         response = client.post(
-          url='/items/',
+          url='/items',
           json=items_to_be_created
         )
         assert False
@@ -176,7 +176,7 @@ class TestItems(pss_test_base):
     with TestClient(app.app) as client:
       # plain call
       response = client.get(
-        '/items/'
+        '/items'
       )
       assert response.status_code == 200
       jsonResponse = response.json()
@@ -193,7 +193,7 @@ class TestItems(pss_test_base):
 
       # call using limit
       response = client.get(
-        '/items/?limit=2'
+        '/items?limit=2'
       )
       assert response.status_code == 200
       jsonResponse = response.json()
@@ -202,7 +202,7 @@ class TestItems(pss_test_base):
   
       # call using offset
       response = client.get(
-        '/items/?offset=1'
+        '/items?offset=1'
       )
       assert response.status_code == 200
       jsonResponse = response.json()
@@ -211,7 +211,7 @@ class TestItems(pss_test_base):
   
       # call using limit and offset
       response = client.get(
-        '/items/?limit=1&offset=0'
+        '/items?limit=1&offset=0'
       )
       assert response.status_code == 200
       jsonResponse1 = response.json()
@@ -219,7 +219,7 @@ class TestItems(pss_test_base):
       assert len(jsonResponse1) == 1
       # place second call
       response = client.get(
-        '/items/?limit=1&offset=3'
+        '/items?limit=1&offset=3'
       )
       assert response.status_code == 200
       jsonResponse2 = response.json()

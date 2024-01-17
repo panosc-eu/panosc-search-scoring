@@ -3,6 +3,8 @@
 #
 
 from typing import Callable
+
+import pymongo
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from fastapi import FastAPI
 from functools import partial
@@ -35,6 +37,30 @@ def db_connect_handler(app: FastAPI) -> Callable:
     debug(config,app.state.db_database)
 
   return partial(db_connect, app=app)
+
+
+def db_add_indexes_handler(app: FastAPI) -> Callable:
+  """
+  Make sure that the correct indexes exists
+  """
+  async def db_add_indexes(app: FastAPI) -> None:
+    db = app.state.db_database
+
+    coll = db["weights_idf"]
+    indexes = await coll.index_information()
+    if "weights_idf_group_name" not in indexes:
+      coll.create_index(
+        [
+          ("group", pymongo.ASCENDING),
+          ("term", pymongo.ASCENDING)
+        ],
+        name='weights_idf_group_name',
+        unique=True
+      )
+
+  return partial(db_add_indexes, app=app)
+
+
 
 #def db_close_handler() -> Callable:
 def db_close_handler(app: FastAPI) -> Callable:

@@ -50,7 +50,7 @@ class TestCompute(pss_test_base):
         self._endpoint_url
       )
       
-      assert response.status_code == 404
+      assert response.status_code == 200
       jsonResponse = ComputeStatusResponseModel(**response.json())
       assert jsonResponse.progressPercent == 0
       assert jsonResponse.progressDescription == "Weights computation not yet run"

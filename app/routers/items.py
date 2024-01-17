@@ -6,7 +6,7 @@
 from fastapi import APIRouter, Request, Response, status, Body, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
-from typing import List
+from typing import List, Union
 import json
 
 #from starlette import responses
@@ -21,7 +21,7 @@ from ..models.items import \
   ItemsCountResponseModel, \
   ItemPutResponseModel, \
   ItemPatchResponseModel, \
-  ItemDeleteResponseModel
+  ItemDeleteResponseModel, InputItemModel
 from ..common.utils import debug
 import app.ml.preprocessItemsText as pit
 from app.ml.weightscomputation import WC
@@ -111,13 +111,14 @@ async def count_items(req: Request):
   }
 )
 async def get_item(
-    req: Request
+    req: Request,
+    item_id: str
 ):
   # extract db and config from the app class
   config = req.app.state.config
   db = req.app.state.db_database
   
-  item_id = req.path_params['item_id']
+  #item_id = req.path_params['item_id']
 
   debug(config,"get item : " + item_id)
   # retrieve results
@@ -154,7 +155,10 @@ def extract_item_terms(item):
   response_model=ItemCreationResponseModel,
   status_code=201
 )
-async def new_items(req: Request, inputItems = Body(...)): #List[ItemCreateModel]):
+async def new_items(
+    req: Request,
+    inputItems: Union[str, InputItemModel, List[InputItemModel]]
+): #List[ItemCreateModel]):
   # extract db and config from the app class
   config = req.app.state.config
   db = req.app.state.db_database
@@ -168,22 +172,30 @@ async def new_items(req: Request, inputItems = Body(...)): #List[ItemCreateModel
       debug(config,"Converting input to python type")
       inputItems = json.loads(inputItems)
 
-    # check if we need to insert one or many
-    writtenItems = 0
-    if type(inputItems) is dict:
-      # we have only one structured item to insert
+      # check if we need to insert one or many
+      writtenItems = 0
+      if type(inputItems) is dict:
+        # we have only one structured item to insert
+        inputItems = [inputItems]
+      elif type(inputItems) is list:
+        # we assume that we have many items to insert
+        inputItems = [
+          InputItemModel(
+            **item
+          )
+          for item
+          in inputItems
+        ]
+      else:
+        raise HTTPException(status_code=422,detail="Invalid data")
+    elif type(inputItems) is not list:
       inputItems = [inputItems]
-    elif type(inputItems) is list:
-      # we assume that we have many items to insert
-      pass
-    else:
-      raise HTTPException(status_code=422,detail="Invalid data")
 
     # extract terms for each items
     modeledItems = jsonable_encoder(
       [
         ItemModel(**{
-          **item,
+          **item.dict(),
           **{
             'terms': pit.preprocessItemText(item)
           }

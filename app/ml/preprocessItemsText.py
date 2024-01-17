@@ -107,7 +107,7 @@ def preprocessItemText(item):
 
   # check if input item is a string
   # if it is not, we assume that it is a panda dataframe row
-  outstring = item if isinstance(item,str) else json.dumps(item['fields'])
+  outstring = item if isinstance(item,str) else json.dumps(item['fields'] if isinstance(item,dict) else item.fields)
 
   outstring = outstring.lower()
   outstring = removeUnicode(outstring)

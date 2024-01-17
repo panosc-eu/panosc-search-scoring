@@ -17,7 +17,11 @@ app = FastAPI(
 app.state.config = appConfig
 app.state.db_client = None
 app.state.db_database = None
+# instantiate database handler
 app.add_event_handler("startup",database.db_connect_handler(app))
+# make sure that the correct indexes are present
+app.add_event_handler("startup",database.db_add_indexes_handler(app))
+# close connection to database
 app.add_event_handler("shutdown",database.db_close_handler(app))
 
 # include individual subsystems endpoints

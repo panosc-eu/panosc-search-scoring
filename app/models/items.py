@@ -14,6 +14,15 @@ class ItemModel(BaseModel):
   class Config:
     allow_population_by_field_name = True
 
+# input item model
+class InputItemModel(BaseModel):
+  id: str = Field(alias='_id')
+  group: str = "default"
+  fields: Dict = {}
+
+  class Config:
+    allow_population_by_field_name = True
+
 
 # create item model
 # not needed anymore

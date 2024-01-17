@@ -79,14 +79,16 @@ async def get_compute_status(
         }
       )
     ]
+    print(ComputeStatusResponseModel(**computeStatus[0].dict()))
   elif len(computeStatus) > 1:
     # item not found
     return JSONResponse(
       status_code=500,
       content={'message' : 'multiple status entry in database'}
     )
-  
-  return ComputeStatusResponseModel(**computeStatus[0])
+
+  print(type(computeStatus[0]))
+  return ComputeStatusResponseModel(**jsonable_encoder(computeStatus[0]))
 
 
 #

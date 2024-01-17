@@ -607,6 +607,83 @@ class WC():
       in self._terms_update
     ]
 
+    # pipeline = [
+    #   {
+    #     "$match" : {
+    #       "$expr" : groups_condition
+    #     }
+    #   },
+    #   {
+    #     "$group" : {
+    #       "_id" : "null",
+    #       "group" : { "$last": "$group" } ,
+    #       "document_count": { "$sum" : 1 }
+    #     }
+    #   },
+    #   {
+    #     "$addFields" : {
+    #       "group_term" : group_term_list
+    #     }
+    #   },
+    #   { "$unwind": { "path": "$group_term" } },
+    #   { "$match": { "$expr": {"$eq": ["$group", "$group_term.group"] } } },
+    #   {
+    #     "$project" : {
+    #       "group" :  1,
+    #       "document_count": 1,
+    #       "term" : "$group_term.term"
+    #     }
+    #   },
+    #   {
+    #     "$lookup" : {
+    #       "from" : "weights_tf",
+    #       "let" : {
+    #         "weight_group" : "$group",
+    #         "weight_term": "$term"
+    #       },
+    #       "pipeline" : [
+    #         {
+    #           "$match" : {
+    #             "$expr" : {
+    #               "$and" : [
+    #                 { "$eq" : [ "$group" , "$$weight_group" ] },
+    #                 { "$eq" : [ "$term", "$$weight_term" ] }
+    #               ]
+    #             }
+    #           }
+    #         },
+    #         { "$count" : "count" }
+    #       ],
+    #       "as" : "term_document"
+    #     }
+    #   },
+    #   {
+    #     "$project" : {
+    #       "_id" : 0,
+    #       "term" : 1,
+    #       "group" : 1,
+    #       "term_document_count" : { "$first" : "$term_document.count" },
+    #       "document_count" : 1
+    #     }
+    #   },
+    #   {
+    #     "$project" : {
+    #       "_id" : 0,
+    #       "term" : 1,
+    #       "group" : 1,
+    #       "IDF" : { "$log10" : { "$sum" : [ 1, { "$divide" : [ "$term_document_count", "$document_count" ] } ] } }
+    #     }
+    #   },
+    #   {
+    #     '$merge' : {
+    #       'into' : COLLECTION_IDF,
+    #       'on' : ['group', 'term'],
+    #       'whenMatched' : 'replace',
+    #       'whenNotMatched' : 'insert'
+    #     }
+    #   }
+    # ]
+
     pipeline = [
       {
         "$match" : {
@@ -628,9 +705,7 @@ class WC():
       { "$unwind": { "path": "$group_term" } },
       { "$match": { "$expr": {"$eq": ["$group", "$group_term.group"] } } },
       {
-        "$project" : {
-          "group" :  1,
-          "document_count": 1,
+        "$set" : {
           "term" : "$group_term.term"
         }
       },
@@ -658,12 +733,13 @@ class WC():
         }
       },
       {
-        "$project" : {
-          "_id" : 0,
-          "term" : 1,
-          "group" : 1,
-          "term_document_count" : { "$first" : "$term_document.count" },
-          "document_count" : 1
+        "$set" : {
+          "term_document_count" : { "$first" : "$term_document.count" }
+        }
+      },
+      {
+        "$set" : {
+          "IDF" : { "$log10" : { "$sum" : [ 1, { "$divide" : [ "$term_document_count", "$document_count" ] } ] } }
         }
       },
       {
@@ -671,7 +747,7 @@ class WC():
           "_id" : 0,
           "term" : 1,
           "group" : 1,
-          "IDF" : { "$log10" : { "$sum" : [ 1, { "$divide" : [ "$term_document_count", "$document_count" ] } ] } }
+          "IDF" : 1
         }
       },
       {
